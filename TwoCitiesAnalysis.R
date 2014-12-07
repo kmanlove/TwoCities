@@ -226,14 +226,13 @@ diam.au <- diameter(author.graph)
 author.unique.frame$degrees <- degree(author.graph)
 author.unique.frame$closeness <- centralization.closeness(author.graph)$res
 author.unique.frame$betweenness <- centralization.betweenness(author.graph, directed = F)$res
-power.law.fit.au <- power.law.fit(author.degrees)
+power.law.fit.au <- power.law.fit(author.unique.frame$degrees)
 
 # specify some node attributes and begin plotting
 V(author.graph)$size <- author.vertex.size
 V(author.graph)$name <- authors
 par(mfrow = c(1, 1))
 plot(author.graph, margin = c(-.75, -.75, 0, 0), vertex.size = 1, vertex.label = NA, edge.arrow.size = .05)
-
 
 # author communities
 walktr.au <- walktrap.community(author.graph, steps = 20)
@@ -255,15 +254,62 @@ for(i in 1:length(vertex.labels.verysmall)){
   vertex.labels.verysmall[i] <- ifelse (i %in% which(V(author.graph.small)$size >= 50), toupper(gsub(" .", "", V(author.graph.small)$name[i])), "")
 }
 
-#label.vertices <- which(V(author.graph.small)$size >= 75)
 labeled.scientists <- V(author.graph.small)$name[which(V(author.graph.small)$size >= 50)]
 labeled.scientists
 
-#plot(walktr2.au, vertex.frame.color = rgb(red = 255, blue = 255, green = 255, alpha = 1, maxColorValue = 255), vertex.label = vertex.labels.verysmall,  vertex.label.cex = 1.2, vertex.label.color = "black", margin = c(-.85, -.85, -.2, -.6), author.graph.small, layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = rgb(red = 100, green = 100, blue = 100, alpha = .50, maxColorValue = 255), edge.arrow.size = .3, vertex.label = "", vertex.size = V(author.graph.small)$size / 12)
 plot(author.graph.small, vertex.frame.color = "grey70", vertex.label = vertex.labels.verysmall,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey80", edge.arrow.size = 0, vertex.label = "", vertex.size = V(author.graph.small)$size / 12, vertex.color = "grey80")
 plot(multi.au, author.graph.small, vertex.frame.color = "grey70", vertex.label = vertex.labels.verysmall,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey80", edge.arrow.size = 0, vertex.label = "", vertex.size = V(author.graph.small)$size / 12, vertex.color = "grey80")
 
+# cut down to just giant component
+author.clusters <- clusters(author.graph)
+giant.compo.aus <- delete.vertices(author.graph, which(clusters(author.graph)$membership != 1))
+#author.graph[clusters(author.graph)$membership == 1, clusters(author.graph)$membership == 1]
+plot(giant.compo.aus, margin = c(-.85, -.75, -.15, -.5), vertex.size = 1, vertex.label = NA, edge.arrow.size = .05)
 
+vertex.labels.giantcompos <- rep(NA, length(V(giant.compo.aus)$name))
+# vertices to label: 
+# Cleaveland, 
+# Cross, 
+# Ferguson
+# Ferrari, 
+# Gilligan
+# Grenfell, 
+# Halloran, 
+# Haydon, 
+# Hudson
+# Keeling, 
+# King
+# Lloyd-Smith,
+# Longini
+# Medley, 
+# Pascual,
+# Read, 
+# Rohani, 
+# Vespigani
+# Wallinga
+# Webb
+# Woolhouse
+# Wu
+authors.in <- c(76, 487, 567, 682, 737, 820, 823, 952, 1018, 1076, 1126, 1234, 1360, 1387, 1583, 1756, 1786, 2031, 2194, 2211, 2223, 2273, 2777, 2810, 2838 , 2920, 2926)
+
+for(i in 1:length(vertex.labels.giantcompos)){
+  vertex.labels.giantcompos[i] <- ifelse (i %in% authors.in, toupper(gsub(" .", "", V(giant.compo.aus)$name[i])), "")
+}
+
+stored.layout <- layout.fruchterman.reingold(giant.compo.aus)
+margin.dims <- c(-1.0, -1.0, -.15, -.9)
+walktr.au.giant <- walktrap.community(giant.compo.aus, steps = 50)
+plot(walktr.au.giant, margin = c(-.85, -.85, -.15, -.5), giant.compo.aus, vertex.frame.color = "grey70", vertex.label = vertex.labels.giantcompos,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey80", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = "grey80")
+plot(giant.compo.aus, margin = c(-1.2, -1., -.25, -.75), vertex.frame.color = as.numeric(walktr.au.giant$membership), vertex.label = vertex.labels.giantcompos,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = as.numeric(walktr.au.giant$membership))
+
+plot(giant.compo.aus, margin = margin.dims * 1.5, vertex.frame.color = "grey60", vertex.label = vertex.labels.giantcompos,  vertex.label.cex = .6, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = stored.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = "grey80")
+plot(giant.compo.aus, margin = margin.dims, vertex.frame.color = "grey60",  vertex.label.cex = .6, vertex.label.color = "black", layout = stored.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = "grey80")
+plot(giant.compo.aus, margin = margin.dims * 1.4, vertex.frame.color = "grey60",  vertex.label.cex = .6, vertex.label.color = "black", layout = stored.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = "grey80")
+#plot(walktr.au.giant, giant.compo.aus)
+
+quantile(V(giant.compo.aus)$size, 0.95)
+V(giant.compo.aus)$name[which(V(giant.compo.aus)$size >= 24)]
+which(V(giant.compo.aus)$size >= 24)[1]
 
 #---------------------------------#
 #-- paper network ----------------#
