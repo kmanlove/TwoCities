@@ -81,10 +81,11 @@ data.frame <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/0
 names(data.frame)[6] <- "KRMKeep"
 data.frame <- subset(data.frame, KRMKeep == 1)
 dim(data.frame) # 1605 papers
+data.frame$Source <- factor(data.frame$Source)
+data.frame$AnnualizedCitationRate <- data.frame$TimesCited / (2014 - data.frame$PubYear)
 
 # histogram of distribution of papers among journals
 length(levels(factor(data.frame$Source))) # 108 journals represented
-data.frame$Source <- factor(data.frame$Source)
 table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
 order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
 # order command reorders levels so that they appear in descending frequency
@@ -93,7 +94,6 @@ plot(order.source, type = "h", xaxt = "n", ylab = "Frequency", ylim = c(0, 180),
 axis(side = 1, at = c(1:108), labels = names(order.source), las = 2, cex.axis = .5)
 
 # histogram of distribution of citations
-data.frame$AnnualizedCitationRate <- data.frame$TimesCited / (2014 - data.frame$PubYear)
 par(mfrow = c(2, 2))
 hist(log(data.frame$TimesCited + 1), col = "grey80", main = "", xaxt = "n", xlab = "log(Total Citations + 1)")
 axis(side = 1, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
@@ -102,25 +102,6 @@ axis(side = 1, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(
 plot(log(data.frame$AnnualizedCitationRate + 1) ~ data.frame$PubYear, yaxt = "n", ylab = "log(Annualized citations + 1)", xlab = "year")
 axis(side = 2, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
 
-# aggregated annualized citations of database papers by journal
-journal.total.cites <- journal.total.papers <- journal.total.years <- journal.agg.annual.cites <- rep(NA, 108)
-journal.subsets <- vector("list", 108)
-for(i in 1:108){ # in this loop, calculate annualized citation rate averaged over all papers from each journal
-  journal.subsets[[i]] <- subset(data.frame, Source == levels(data.frame$Source)[i])
-  journal.total.cites[i] <- sum(journal.subsets[[i]]$TimesCited)
-  journal.total.years[i] <- sum(2014 - journal.subsets[[i]]$PubYear)
-  journal.agg.annual.cites[i] <- journal.total.cites[i] / journal.total.years[i]
-  journal.total.papers[i] <- dim(journal.subsets[[i]])[1]
-}
-
-#levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)]
-order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
-# order command reorders levels so that they appear in descending frequency
-par(mfrow = c(1, 1), las = 2, mar = c(15, 6, 1, 1))
-plot(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)] ~ c(1:108), type = "h", xaxt = "n", ylab = "Avg. annualize citation rate for \n all papers in dataset", xlab = "", lwd = journal.total.papers[order(journal.agg.annual.cites, decreasing = T)] * .5)
-text(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)][1:20] ~ c(seq(1:20) + 0.25), labels = paste("(", journal.total.papers[order(journal.agg.annual.cites, decreasing = T)][1:20], ")", sep = ""), cex = .6)
-axis(side = 1, at = c(1:108), labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)]
-     , las = 2, cex.axis = .5)
 
 #--------------------------------------------------------------------------#
 #-- Extract author information and build author info storage structures ---#
@@ -214,10 +195,11 @@ for(i in 1:unique.authors){ # build dataframe with one row per author, and indic
   #  print(i)
 }
 
+
+
 #-----------------------------------------#
 #-- Author network -----------------------#
 #-----------------------------------------#
-
 authors <- trim(levels(factor(author.unique.frame$AuthorID)))
 author.mat <- matrix(0, nrow = length(authors), ncol = length(authors))
 for(i in 1:length(authors)){
@@ -280,6 +262,7 @@ labeled.scientists
 #plot(walktr2.au, vertex.frame.color = rgb(red = 255, blue = 255, green = 255, alpha = 1, maxColorValue = 255), vertex.label = vertex.labels.verysmall,  vertex.label.cex = 1.2, vertex.label.color = "black", margin = c(-.85, -.85, -.2, -.6), author.graph.small, layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = rgb(red = 100, green = 100, blue = 100, alpha = .50, maxColorValue = 255), edge.arrow.size = .3, vertex.label = "", vertex.size = V(author.graph.small)$size / 12)
 plot(author.graph.small, vertex.frame.color = "grey70", vertex.label = vertex.labels.verysmall,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey80", edge.arrow.size = 0, vertex.label = "", vertex.size = V(author.graph.small)$size / 12, vertex.color = "grey80")
 plot(multi.au, author.graph.small, vertex.frame.color = "grey70", vertex.label = vertex.labels.verysmall,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey80", edge.arrow.size = 0, vertex.label = "", vertex.size = V(author.graph.small)$size / 12, vertex.color = "grey80")
+
 
 
 #---------------------------------#
@@ -349,6 +332,25 @@ paper.optim.community <- optimal.community(paper.graph)
 #-----------------------------------------#
 #-- Journal network ----------------------#
 #-----------------------------------------#
+# aggregated annualized citations of database papers by journal
+journal.total.cites <- journal.total.papers <- journal.total.years <- journal.agg.annual.cites <- rep(NA, 108)
+journal.subsets <- vector("list", 108)
+for(i in 1:108){ # in this loop, calculate annualized citation rate averaged over all papers from each journal
+  journal.subsets[[i]] <- subset(data.frame, Source == levels(data.frame$Source)[i])
+  journal.total.cites[i] <- sum(journal.subsets[[i]]$TimesCited)
+  journal.total.years[i] <- sum(2014 - journal.subsets[[i]]$PubYear)
+  journal.agg.annual.cites[i] <- journal.total.cites[i] / journal.total.years[i]
+  journal.total.papers[i] <- dim(journal.subsets[[i]])[1]
+}
+
+order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
+# order command reorders levels so that they appear in descending frequency
+par(mfrow = c(1, 1), las = 2, mar = c(15, 6, 1, 1))
+plot(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)] ~ c(1:108), type = "h", xaxt = "n", ylab = "Avg. annualize citation rate for \n all papers in dataset", xlab = "", lwd = journal.total.papers[order(journal.agg.annual.cites, decreasing = T)] * .5)
+text(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)][1:20] ~ c(seq(1:20) + 0.25), labels = paste("(", journal.total.papers[order(journal.agg.annual.cites, decreasing = T)][1:20], ")", sep = ""), cex = .6)
+axis(side = 1, at = c(1:108), labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)]
+     , las = 2, cex.axis = .5)
+
 journal1 <- journal2 <- matrix(NA, nrow = 1605, ncol = 1605)
 for(i in papers.with.cites){
   for(j in papers.with.cites){
