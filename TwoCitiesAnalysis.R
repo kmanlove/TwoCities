@@ -370,6 +370,11 @@ for(i in papers.with.cites){
 
 paper.graph <- graph.adjacency(assoc.mat)
 V(paper.graph)$size <- data.frame$TimesCited
+V(paper.graph)$name <- rep(NA, 1605)
+for(i in 2:1605){
+  first.i <- strsplit(strsplit(as.character(data.frame$Authors)[i], split = ";")[[1]][1], split = ",")[[1]][1]
+  V(paper.graph)$name[i] <- paste(first.i, " ", as.character(data.frame$PubYear[i]), " ", as.character(data.frame$Title[i]), sep = "")
+}
 
 # description of paper graph
 paper.compos <- clusters(paper.graph, mode = "weak")
@@ -390,7 +395,7 @@ paper.optim.community <- optimal.community(paper.graph)
 
 # plot of giant component only
 giant.compo.papers <- delete.vertices(paper.graph, which(clusters(paper.graph)$membership != 5))
-plot(giant.compo.papers, vertex.size = V(giant.compo.papers)$size / 5)
+#plot(giant.compo.papers, vertex.size = V(giant.compo.papers)$size / 5)
 giant.compo.papers.walktr <- walktrap.community(giant.compo.papers, steps = 4)
 giant.compo.papers.walktr$membership
 table(giant.compo.papers.walktr$membership)
@@ -399,6 +404,12 @@ small.communities <- as.numeric(as.character(names(table(giant.compo.papers.walk
 paper.vertex.ind <- factor(ifelse(giant.compo.papers.walktr$membership %in% small.communities, "small", giant.compo.papers.walktr$membership))
 color.vec <- c("red", "blue", "green", "yellow", "deeppink", "darkseagreen4", "darkturquoise", "purple", "grey70")
 paper.vertex.colors <- color.vec[paper.vertex.ind]
+
+paper.comm.top10 <- vector("list", length(levels(paper.vertex.ind)))
+for(i in 1:length(levels(paper.vertex.ind))){
+  paper.comm.i <- V(giant.compo.papers)[as.numeric(paper.vertex.ind) == i]
+  paper.comm.top10[[i]] <- paper.comm.i$name[order(paper.comm.i$size, decreasing = T)][1:10]
+}
 
 margin.dims = c(0, 0, 0, 0)
 #svg("~/work/Kezia/Research/EcologyPapers/TwoCities/Plots/PapersGC_06Dec2014.svg")
@@ -480,33 +491,26 @@ walktr.jo$membership
 table(walktr.jo$membership)
 # largest communities get unique colors; all communities <= 10 are "grey40"
 small.communities.jo <- as.numeric(as.character(names(table(walktr.jo$membership))[which(table(walktr.jo$membership) <= 3)]))
+
+
 jo.vertex.ind <- factor(ifelse(walktr.jo$membership %in% small.communities.jo, "small", walktr.jo$membership))
-color.vec.jo <- c("red", "blue", "green", "grey70")
+color.vec.jo <- c("deeppink", "blue", "gold1", "grey70")
 jo.vertex.colors <- color.vec.jo[jo.vertex.ind]
 V(journal.graph.small)$size <- ifelse(is.finite(V(journal.graph.small)$size) == T, V(journal.graph.small)$size, 0)
+
+jo.comm.top10 <- vector("list", length(levels(jo.vertex.ind)))
+for(i in 1:length(levels(jo.vertex.ind))){
+  jo.comm.i <- V(journal.graph.small)[as.numeric(jo.vertex.ind) == i]
+  jo.comm.top10[[i]] <- jo.comm.i$name[order(jo.comm.i$size, decreasing = T)][1:10]
+}
+
 fixed.jo.layout <- layout.fruchterman.reingold(journal.graph.small)
 margin.dims = c(0, 0, 0, 0)
 
 svg("~/work/Kezia/Research/EcologyPapers/TwoCities/Plots/JournalsGC_06Dec2014.svg")
 #fixed.paper.layout <- layout.fruchterman.reingold(giant.compo.papers)
-plot(journal.graph.small, margin = margin.dims, vertex.frame.color = "black", vertex.label = "",  vertex.label.cex = .5, vertex.label.color = "black", layout = fixed.jo.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = (V(journal.graph.small)$size + 1) / 10, vertex.color = jo.vertex.colors)
+plot(journal.graph.small, margin = margin.dims, vertex.frame.color = "black", vertex.label = "",  vertex.label.cex = .5, vertex.label.color = "black", layout = fixed.jo.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = (V(journal.graph.small)$size + 1) / 10 + 2, vertex.color = jo.vertex.colors)
 dev.off()
-
-# #-- cut down to just the journals in communities of 2 or more, and cut number of steps in walk --#
-# communities.to.include <- which(sizes(walktr) >= 2)
-# vertex.inclusion.ind <- ifelse(membership(walktr) %in% communities.to.include, 1, 0)
-# journal.graph.very.small <- delete.vertices(journal.graph.small, which(vertex.inclusion.ind == 0))
-# walktr2 <- walktrap.community(journal.graph.very.small, steps = 8)
-# plot(walktr2, journal.graph.very.small, layout = layout.fruchterman.reingold, edge.arrow.size = .3, vertex.label = "", vertex.size = 3)
-# 
-# sizes(walktr2)
-# grp1 <- vertex.attributes(journal.graph.very.small)$name[membership(walktr2) == 1]
-# grp2 <- vertex.attributes(journal.graph.very.small)$name[membership(walktr2) == 2]
-# grp3 <- vertex.attributes(journal.graph.very.small)$name[membership(walktr2) == 3]
-# grp4 <- vertex.attributes(journal.graph.very.small)$name[membership(walktr2) == 4]
-# 
-
-# get distribution of author disciplines for each community
 
 #-------------------------------------------------------------------------------------#
 #-- regression of avg. author closeness and betweenness on annualized citation rate --#
