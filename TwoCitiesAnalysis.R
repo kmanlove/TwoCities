@@ -1,5 +1,7 @@
 # load required package igraph
 require(igraph)
+require(ape)
+source("~/work/Kezia/Research/EcologyPapers/TwoCities/Code/TwoCities/TwoCities_SourceFunctions.R")
 #require(degreenet)
 
 # read in papers dataset
@@ -316,10 +318,15 @@ for(i in 1:length(levels(au.vertex.ind))){
 plot(giant.compo.aus, vertex.frame.color = as.numeric(walktr.au.giant$membership), vertex.label = vertex.labels.giantcompos,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = as.numeric(walktr.au.giant$membership))
 
 stored.layout.au <- layout.fruchterman.reingold(giant.compo.aus)
-svg("~/work/Kezia/Research/EcologyPapers/TwoCities/Plots/AuthorsGC_06Dec2014.svg")
-#plot(giant.compo.aus, margin = margin.dims, vertex.frame.color = "black", vertex.label = vertex.labels.giantcompos,  vertex.label.cex = .6, vertex.label.color = "black", layout = stored.layout.au, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = au.vertex.colors)
+#svg("~/work/Kezia/Research/EcologyPapers/TwoCities/Plots/AuthorsGC_06Dec2014.svg")
 plot(giant.compo.aus, margin = margin.dims, vertex.frame.color = "black", vertex.label = "",  vertex.label.cex = .6, vertex.label.color = "black", layout = stored.layout.au, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.aus)$size / 12, vertex.color = au.vertex.colors)
-dev.off()
+#dev.off()
+
+au.dendro <- as.dendrogram(giant.compo.au.walktr)
+height.of.leafs <- dendrapply(au.dendro, function(e) attr(e, "height"))
+quantile(unlist(height.of.leafs), c(0.9, 0.95, 0.975))
+au.dendro.height2700 <- cut(au.dendro, h = 2700)
+plot(au.dendro.height2700$upper)
 
 quantile(V(giant.compo.aus)$size, 0.95)
 V(giant.compo.aus)$name[which(V(giant.compo.aus)$size >= 24)]
@@ -356,7 +363,6 @@ full.citation.frame <- do.call("rbind", citation.frame) # 68651 total refs
 # loop over papers. build relations into 1605 X 1605 matrix
 # rows are cited paper, cols are new papers
 assoc.mat <- matrix(NA, nrow = 1605, ncol = 1605)
-#assoc.list <- vector("list", 1605)
 for(i in papers.with.cites){
   for(j in papers.with.cites){
     if(i == j){
@@ -395,7 +401,6 @@ paper.optim.community <- optimal.community(paper.graph)
 
 # plot of giant component only
 giant.compo.papers <- delete.vertices(paper.graph, which(clusters(paper.graph)$membership != 5))
-#plot(giant.compo.papers, vertex.size = V(giant.compo.papers)$size / 5)
 giant.compo.papers.walktr <- walktrap.community(giant.compo.papers, steps = 4)
 giant.compo.papers.walktr$membership
 table(giant.compo.papers.walktr$membership)
@@ -481,12 +486,6 @@ plot(journal.graph.small, layout = layout.fruchterman.reingold, vertex.size = lo
 
 # journal communities
 walktr.jo <- walktrap.community(journal.graph.small, steps = 4)
-# sizes(walktr.jo)
-# component1.journals <- vertex.attributes(journal.graph)$name[membership(walktr) == 1]
-# component2.journals <- vertex.attributes(journal.graph)$name[membership(walktr) == 2]
-# component3.journals <- vertex.attributes(journal.graph.small)$name[membership(walktr) == 3]
-# plot(walktr, journal.graph, layout = layout.fruchterman.reingold, edge.arrow.size = .3, vertex.label = "", vertex.size = 3)
-
 walktr.jo$membership
 table(walktr.jo$membership)
 # largest communities get unique colors; all communities <= 10 are "grey40"
@@ -507,10 +506,16 @@ for(i in 1:length(levels(jo.vertex.ind))){
 fixed.jo.layout <- layout.fruchterman.reingold(journal.graph.small)
 margin.dims = c(0, 0, 0, 0)
 
-svg("~/work/Kezia/Research/EcologyPapers/TwoCities/Plots/JournalsGC_06Dec2014.svg")
+#svg("~/work/Kezia/Research/EcologyPapers/TwoCities/Plots/JournalsGC_06Dec2014.svg")
 #fixed.paper.layout <- layout.fruchterman.reingold(giant.compo.papers)
 plot(journal.graph.small, margin = margin.dims, vertex.frame.color = "black", vertex.label = "",  vertex.label.cex = .5, vertex.label.color = "black", layout = fixed.jo.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = (V(journal.graph.small)$size + 1) / 10 + 2, vertex.color = jo.vertex.colors)
-dev.off()
+#dev.off()
+
+jo.dendro <- as.dendrogram(walktr.jo)
+in.colbar <- c("forestgreen", "navyblue", "red", "black", "green", "seagreen4", "yellow", "turquoise", "purple", "gold", "magenta", "grey40", "orange", "deeppink", "blue")
+par(mar = c(0, 0, 0, 0), cex.axis = .7)
+dendPlot(walktr.jo, mode = "phylo", label.offset = .5, cex = .8, colbar = in.colbar, direction = "downwards")
+
 
 #-------------------------------------------------------------------------------------#
 #-- regression of avg. author closeness and betweenness on annualized citation rate --#
