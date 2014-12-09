@@ -1,4 +1,12 @@
 as.dendrogram.igraph.walktrap <- function (object, hang=-1, use.modularity=FALSE, ...){
+  .memberDend <- function(x) {
+    r <- attr(x,"x.member")
+    if(is.null(r)) {
+      r <- attr(x,"members")
+      if(is.null(r)) r <- 1:1
+    }
+    r
+  }
       stopifnot(nrow(object$merges)> 0)
       storage.mode(object$merges) <- "integer"
       object$merges <- object$merges + 1L
@@ -38,27 +46,20 @@ as.dendrogram.igraph.walktrap <- function (object, hang=-1, use.modularity=FALSE
               ## Originally had "x <- sort(..) above => leaf always left, x[1];
                 ## don't want to assume this
                 isL <- x[1] < leafs+1 ## is leaf left?
-              zk <-
-                  if(isL) list(x[1], z[[X[2]]])
+              zk <- if(isL) list(x[1], z[[X[2]]])
                 else    list(z[[X[1]]], x[2])
               attr(zk, "members") <- attr(z[[X[1 + isL]]], "members") + one
-              attr(zk, "midpoint") <-
-                  (igraph:::.memberDend(zk[[1]]) + attr(z[[X[1 + isL]]],
-                                                         >"midpoint"))/2
+              attr(zk, "midpoint") <- (igraph:::.memberDend(zk[[1]]) + attr(z[[X[1 + isL]]], "midpoint"))/2
               attr(zk[[2 - isL]], "members") <- one
               attr(zk[[2 - isL]], "height") <- h0
               attr(zk[[2 - isL]], "label") <- object$labels[x[2 - isL]]
               attr(zk[[2 - isL]], "leaf") <- TRUE
-        
               }
           else {                        # two nodes
               x <- as.character(x)
               zk <- list(z[[x[1]]], z[[x[2]]])
-              attr(zk, "members") <- attr(z[[x[1]]], "members") +
-                attr(z[[x[2]]], "members")
-              attr(zk, "midpoint") <- (attr(z[[x[1]]], "members") +
-                                                                         attr(z[[x[1]]], "midpoint") +
-                                                                         attr(z[[x[2]]], "midpoint"))/2
+              attr(zk, "members") <- attr(z[[x[1]]], "members") + attr(z[[x[2]]], "members")
+              attr(zk, "midpoint") <- (attr(z[[x[1]]], "members") + attr(z[[x[1]]], "midpoint") + attr(z[[x[2]]], "midpoint"))/2
           }
           attr(zk, "height") <- oHgt[k]
           z[[k <- as.character(k+leafs)]] <- zk
