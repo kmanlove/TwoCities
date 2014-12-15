@@ -1,73 +1,7 @@
-# load required package igraph
+# load required packages and source functions
 require(igraph)
 require(ape)
 source("~/work/Kezia/Research/EcologyPapers/TwoCities/Code/TwoCities/TwoCities_SourceFunctions.R")
-#require(degreenet)
-
-# read in papers dataset
-# keep track of where you saved the dataset; file.choose() will open a navigation window that should let you browse to the dataset's location.
-# file.choose is UNTESTED ON MACS, so if it doesn't work, specify the path to the datafile by hand. 
-
-
-# what journals are included?
-journal.list <- levels(factor(graph.data.frame$SO))
-journal.tab <- as.data.frame(table(factor(graph.data.frame$SO)))
-
-# journal rankings by topic
-agbiosci <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/AgBioSciFull.csv", header = T)
-
-agbio.top20s <- subset(agbiosci, RankInClass <= 20)
-length(levels(factor(agbio.top20s$Title)))
-
-vetjos <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/Vet_All.csv", header = T)
-vet.top20s <- subset(vetjos, RankInClass <= 20)
-length(levels(factor(vet.top20s$Title)))
-
-fulljo <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/FullJournalList.csv", header = T)
-
-top25.full <- subset(fulljo, RankInClass <= 25)
-ClassesToOmit <- c("Forestry")
-forestry.journals <- subset(top25.full, Class %in% ClassesToOmit)$Title
-foodsci.journals <- subset(top25.full, Class %in% "FoodScience")$Title
-table(factor(foodsci.journals))
-virology.journals <- subset(top25.full, Class %in% "Virology")$Title
-table(factor(virology.journals))
-aqsci.journals <- subset(top25.full, Class %in% "AquaticSci")$Title
-table(factor(aqsci.journals))
-
-fulljos <- levels(factor(top25.full$Title))
-write.csv(fulljos, "~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/Top25JoList.csv", row.names = F)
-
-MostRelevantCategories <- c("AgBiosciMisc", "AnimSciZool", "EcologicalModeling", "Ecology", "EEBS", "Med_Epi", "Med_InfectDisease", "NatureLandscapeConservation", "")
-mostrelevant.top25 <- subset(top25.full, Class %in% MostRelevantCategories)
-mostrelevantjos <- levels(factor(mostrelevant.top25$Title))
-write.csv(mostrelevantjos, "~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/MostRelevantTop25JoList.csv", row.names = F)
-
-addons <- c( "AgBiosciMisc")
-addon.dat <- subset(top25.full, Class %in% addons)
-addonjos <- levels(factor(addon.dat$Title))
-write.csv(addonjos, "~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/AddOnJos.csv", row.names = F)
-
-most.relevant.quotes <- subset(mostrelevant.top25, Class == "")
-levels(factor(most.relevant.quotes$Title))
-
-most.relevant <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/MostRelevant/Strategy3PaperList_04Nov2014.csv", header = T, sep = "\t")
-table(most.relevant$SO)
-length(levels(factor(most.relevant$SO)))
-common.sources <- levels(factor(most.relevant$SO))[which(table(most.relevant$SO) >= 10)]
-
-mostrel.joswithmultcites <- subset(most.relevant, as.character(SO) %in% common.sources)
-table(factor(mostrel.joswithmultcites$SO))
-
-# subsets of papers by journal
-ecol.let <- subset(most.relevant, as.character(SO) == "ECOLOGY LETTERS", select = c("AU", "TI"))
-write.csv(ecol.let, "~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/MostRelevant/Strategy3ExEcolLetters.csv")
-
-prsb <- subset(most.relevant, as.character(SO) == "PROCEEDINGS OF THE ROYAL SOCIETY B-BIOLOGICAL SCIENCES", select = c("AU", "TI"))
-write.csv(prsb, "~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search2/MostRelevant/Strategy3ExPRSB.csv")
-
-
-
 
 #------------------------------------------------------------------------------------------# 
 #-- Data are set up with two unique keys: -------------------------------------------------#
@@ -269,30 +203,6 @@ giant.compo.aus <- delete.vertices(author.graph, which(clusters(author.graph)$me
 plot(giant.compo.aus, margin = c(-.85, -.75, -.15, -.5), vertex.size = 1, vertex.label = NA, edge.arrow.size = .05)
 
 vertex.labels.giantcompos <- rep(NA, length(V(giant.compo.aus)$name))
-# vertices to label: 
-# Cleaveland, 
-# Cross, 
-# Ferguson
-# Ferrari, 
-# Gilligan
-# Grenfell, 
-# Halloran, 
-# Haydon, 
-# Hudson
-# Keeling, 
-# King
-# Lloyd-Smith,
-# Longini
-# Medley, 
-# Pascual,
-# Read, 
-# Rohani, 
-# Vespigani
-# Wallinga
-# Webb
-# Woolhouse
-# Wu
-authors.in <- c(76, 487, 567, 682, 737, 820, 823, 952, 1018, 1076, 1126, 1234, 1360, 1387, 1583, 1756, 1786, 2031, 2194, 2211, 2223, 2273, 2777, 2810, 2838 , 2920, 2926)
 
 for(i in 1:length(vertex.labels.giantcompos)){
   vertex.labels.giantcompos[i] <- ifelse (i %in% authors.in, toupper(gsub(" .", "", V(giant.compo.aus)$name[i])), "")
@@ -546,25 +456,25 @@ for(i in 1:dim(data.frame)[1]){
     data.frame$avg.author.between[i] <- mean(author.subset$betweenness)
     data.frame$avg.author.close[i] <- mean(author.subset$closeness)
     data.frame$discipline.class[i] <- ifelse((data.frame$math.author[i] == 1 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "1-math",
-                                             ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 1 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "1-bio", 
-                                                    ifelse((data.frame$math.author[i] == 0 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "1-stat",
-                                                           ifelse((data.frame$math.author[i] == 0 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "1-med",
-                                                                  ifelse((data.frame$math.author[i] == 0 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "1-vet",  
-                                                                         ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 1 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "2-mathbio",  
-                                                                                ifelse((data.frame$math.author[i] == 1 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "2-mathstat",   
-                                                                                       ifelse((data.frame$math.author[i] == 1 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "2-mathmed", 
-                                                                                              ifelse((data.frame$math.author[i] == 1 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "2-mathvet",
-                                                                                                     ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "3-mathbiostat",
-                                                                                                            ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "3-mathbiomed", 
-                                                                                                                   ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "3-mathbiovet",
-                                                                                                                          ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "3-mathstatmed",
-                                                                                                                                 ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "3-mathstatvet",
-                                                                                                                                        ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 1), "3-mathmedvet",
-                                                                                                                                               ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "3-biostatmed",
-                                                                                                                                                      ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "3-biostatvet", 
-                                                                                                                                                             ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 1), "3-biomedvet",  
-                                                                                                                                                                    ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 1), "3-statmedvet", 
-                                                                                                                                                                           "FourDiscip")))))))))))))))))))
+                                      ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 1 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "1-bio", 
+                                      ifelse((data.frame$math.author[i] == 0 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "1-stat",
+                                      ifelse((data.frame$math.author[i] == 0 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "1-med",
+                                      ifelse((data.frame$math.author[i] == 0 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "1-vet",  
+                                      ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 1 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "2-mathbio",  
+                                      ifelse((data.frame$math.author[i] == 1 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "2-mathstat",   
+                                      ifelse((data.frame$math.author[i] == 1 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "2-mathmed", 
+                                      ifelse((data.frame$math.author[i] == 1 & data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0 & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "2-mathvet",
+                                      ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 0), "3-mathbiostat",
+                                      ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "3-mathbiomed", 
+                                      ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "3-mathbiovet",
+                                      ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "3-mathstatmed",
+                                      ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "3-mathstatvet",
+                                      ifelse((data.frame$math.author[i] == 1 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 1), "3-mathmedvet",
+                                      ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 0), "3-biostatmed",
+                                      ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 0 & data.frame$vet.author[i] == 1), "3-biostatvet", 
+                                      ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 | data.frame$biol.author[i] == 1) & data.frame$stat.author[i] == 0 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 1), "3-biomedvet",  
+                                      ifelse((data.frame$math.author[i] == 0 & (data.frame$ecoevo.author[i] == 0 & data.frame$biol.author[i] == 0) & data.frame$stat.author[i] == 1 & data.frame$med.author[i] == 1 & data.frame$vet.author[i] == 1), "3-statmedvet", 
+                                       "FourDiscip")))))))))))))))))))
     print(i)
   }
 }
