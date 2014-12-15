@@ -1,7 +1,11 @@
 # load required packages and source functions
 require(igraph)
 require(ape)
-source("~/work/Kezia/Research/EcologyPapers/TwoCities/Code/TwoCities/TwoCities_SourceFunctions.R")
+
+#------------------------------------------------------------#
+#-- download data from Google Drive:-------------------------#
+#-- Two Cities / Data / IncludedPaperBank_CirculatedV1.csv --#
+#------------------------------------------------------------#
 
 #------------------------------------------------------------------------------------------# 
 #-- Data are set up with two unique keys: -------------------------------------------------#
@@ -13,21 +17,21 @@ source("~/work/Kezia/Research/EcologyPapers/TwoCities/Code/TwoCities/TwoCities_S
 #-------------------------------------------#
 #-- Preliminary description of papers ------#
 #-------------------------------------------#
-data.frame <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Searches/04Nov2014/Search3_NoPathogens/FullPaperBank_30Nov2014.csv", header = T, sep = "\t")
-names(data.frame)[6] <- "KRMKeep"
-data.frame <- subset(data.frame, KRMKeep == 1)
-dim(data.frame) # 1605 papers
+data.frame <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Data/IncludedPaperBank_CirculatedV1.csv", header = T, sep = "\t")
+names(data.frame)[5] <- "Keep"
+data.frame <- subset(data.frame, Keep == 1)
+dim(data.frame) # 1632 papers
 data.frame$Source <- factor(data.frame$Source)
 data.frame$AnnualizedCitationRate <- data.frame$TimesCited / (2014 - data.frame$PubYear)
 
 # histogram of distribution of papers among journals
-length(levels(factor(data.frame$Source))) # 108 journals represented
+length(levels(factor(data.frame$Source))) # 112 journals represented
 table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
 order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
 # order command reorders levels so that they appear in descending frequency
 par(mfrow = c(1, 1), las = 2, mar = c(15, 4, 1, 1))
 plot(order.source, type = "h", xaxt = "n", ylab = "Frequency", ylim = c(0, 180), xlab = "")
-axis(side = 1, at = c(1:108), labels = names(order.source), las = 2, cex.axis = .5)
+axis(side = 1, at = c(1:112), labels = names(order.source), las = 2, cex.axis = .5)
 
 # histogram of distribution of citations
 par(mfrow = c(2, 2))
@@ -137,6 +141,7 @@ for(i in 1:unique.authors){ # build dataframe with one row per author, and indic
 #-- Author network -----------------------#
 #-----------------------------------------#
 authors <- trim(levels(factor(author.unique.frame$AuthorID)))
+length(authors) # 4309 authors
 author.mat <- matrix(0, nrow = length(authors), ncol = length(authors))
 for(i in 1:length(authors)){
   author.refs <- subset(author.full.frame, AuthorID == authors[i])
@@ -191,7 +196,6 @@ for(i in 1:length(vertex.labels.verysmall)){
 }
 
 labeled.scientists <- V(author.graph.small)$name[which(V(author.graph.small)$size >= 50)]
-labeled.scientists
 
 plot(author.graph.small, vertex.frame.color = "grey70", vertex.label = vertex.labels.verysmall,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey80", edge.arrow.size = 0, vertex.label = "", vertex.size = V(author.graph.small)$size / 12, vertex.color = "grey80")
 plot(multi.au, author.graph.small, vertex.frame.color = "grey70", vertex.label = vertex.labels.verysmall,  vertex.label.cex = .5, vertex.label.color = "black", margin = c(-.9, -.95, -.3, -.7), layout = layout.fruchterman.reingold, edge.width = 0.25, edge.color = "grey80", edge.arrow.size = 0, vertex.label = "", vertex.size = V(author.graph.small)$size / 12, vertex.color = "grey80")
@@ -201,12 +205,6 @@ author.clusters <- clusters(author.graph)
 giant.compo.aus <- delete.vertices(author.graph, which(clusters(author.graph)$membership != 1))
 #author.graph[clusters(author.graph)$membership == 1, clusters(author.graph)$membership == 1]
 plot(giant.compo.aus, margin = c(-.85, -.75, -.15, -.5), vertex.size = 1, vertex.label = NA, edge.arrow.size = .05)
-
-vertex.labels.giantcompos <- rep(NA, length(V(giant.compo.aus)$name))
-
-for(i in 1:length(vertex.labels.giantcompos)){
-  vertex.labels.giantcompos[i] <- ifelse (i %in% authors.in, toupper(gsub(" .", "", V(giant.compo.aus)$name[i])), "")
-}
 
 stored.layout <- layout.fruchterman.reingold(giant.compo.aus)
 margin.dims <- c(-1.0, -1.0, -.15, -.9)
@@ -510,253 +508,3 @@ outlier.papers <- papers.with.citrate[outliers, ]
 
 outlier.view.sub <- subset(outlier.papers, select = c("Authors", "Title", "Paper.Number", "Source", "AnnualizedCitationRate", "avg.author.close", "avg.author.between", "sat.resids"))
 outlier.view.sub[21:40, ]
-
-#------------------------------------#
-#-- OLD -----------------------------#
-#------------------------------------#
-
-ref.data.frame.out <- as.data.frame(do.call(rbind, data.frame))
-names(ref.data.frame.out) <- c("OrigDOI", "Author", "Year", "Journal", "Var4", "Var5", "Var6", rep(NA, 8))
-sorted.refs <- ref.data.frame.out[order(ref.data.frame.out$Year), ]
-write.csv(ref.data.frame.out, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/SortedReferenceDataFrame_16Sept2014.csv")
-table(ref.data.frame.out$Year)
-
-DOI1.vec <- unlist(DOI1)
-DOI2.vec <- unlist(DOI2)
-
-length(DOI1.vec)
-length(DOI2.vec)
-
-edgelist.dataframe <- as.data.frame(cbind(DOI1.vec, DOI2.vec))
-edgelist.data.frame <- edgelist.dataframe[complete.cases(edgelist.dataframe), ]
-doi.data.frame <- subset(edgelist.data.frame, DOI2.vec %in% DOI1.vec)
-doi.data.frame$Journal1 <- doi.data.frame$Journal2 <- rep(NA, dim(doi.data.frame)[1])
-for(i in 1:dim(doi.data.frame)[1]){
-  ref1 <- subset(graph.data.frame, as.character(DI) == as.character(doi.data.frame[i, 1]))
-  ref2 <- subset(graph.data.frame, as.character(DI) == as.character(doi.data.frame[i, 2]))
-  doi.data.frame$Journal1[i] <- as.character(ref1$SO[1])
-  doi.data.frame$Journal2[i] <- as.character(ref2$SO[1])
-}
-
-
-
-#doi.data.frame$Journal1 <- as.factor(doi.data.frame$Journal1)
-#doi.data.frame$Journal2 <- as.factor(doi.data.frame$Journal2)
-all.journals <- c(as.character(doi.data.frame$Journal1), as.character(doi.data.frame$Journal2))
-all.journals.small <- levels(factor(all.journals))
-doi.data.frame$Journal1 <- factor(doi.data.frame$Journal1, levels = all.journals.small)
-doi.data.frame$Journal2 <- factor(doi.data.frame$Journal2, levels = all.journals.small)
-
-#levels(doi.data.frame$Journal1) <- all.journals.small
-#levels(doi.data.frame$Journal2) <- all.journals.small
-
-journal.crosstab <- table(doi.data.frame$Journal1, doi.data.frame$Journal2)
-journal.graph <- graph.adjacency(journal.crosstab, mode = "directed", weighted = T)
-V(journal.graph)$size <- table(doi.data.frame$Journal2)
-
-# #-- which journals are disconnected from all others? --#
-# journals.to.drop <- which(times.cited == 1)
-# journal.crosstab.small <- journal.crosstab[- journals.to.drop, - journals.to.drop]
-# journal.graph <- graph.adjacency(journal.crosstab.small, mode = "directed")
-# plot(journal.graph)
-# plot(journal.graph, layout = layout.fruchterman.reingold, edge.arrow.size = .3, vertex.label = "", vertex.size = log(times.cited[which(times.cited != 0)] + 1) * 2)
-
-journal.graph.small <- delete.vertices(journal.graph, which(degree(journal.graph) < 1) - 1)
-
-#-- betweenness in journal graph --#
-journal.ebc <- edge.betweenness.community(journal.graph.small)
-journal.fg <- fastgreedy.community(journal.graph.small)
-#journal.lp <- label.propagation.community(journal.graph.small) -- crashed R
-journal.spinglass <- spinglass.community(journal.graph.small)
-# mods <- sapply(0:ecount(journal.graph.small), 
-#   function(i){
-#     journal.graph.small2 <- delete.edges(journal.graph.small, journal.ebc$removed.edges[seq(length = i)])
-#     journal.clusters <- clusters(journal.graph.small2)$membership
-#     modularity(journal.graph.small, journal.clusters)
-#   }
-# )
-# 
-# plot(mods, pch = 20)
-# 
-# journal.graph2 <- delete.edges(journal.graph, journal.ebc$removed.edges[seq(length = which.max(mods) - 1)])
-# V(journal.graph2)$color = clusters(journal.graph2)$membership
-# journal.graph$layout <- layout.fruchterman.reingold
-# plot(journal.graph2, vertex.label = NA)
-# 
-# #-- fast-greedy communities --#
-# fc <- fastgreedy.community(journal.graph.small)
-# com <- community.to.membership(journal.graph, fc$merges, steps = which.max(fc$modularity) - 1)
-# V(journal.graph)$color <- com$membership+1
-# journal.graph$layout <- layout.fruchterman.reingold
-# plot(journal.graph, vertex.label = NA)
-
-#-- walktrap communities --#
-walktr <- walktrap.community(journal.graph, steps = 6)
-membership(walktr)
-sizes(walktr)
-component6.journals <- vertex.attributes(journal.graph)$name[membership(walktr) == 6]
-component10.journals <- vertex.attributes(journal.graph)$name[membership(walktr) == 10]
-component11.journals <- vertex.attributes(journal.graph.small)$name[membership(walktr) == 11]
-component12.journals <- vertex.attributes(journal.graph)$name[membership(walktr) == 12]
-component2.journals <- vertex.attributes(journal.graph.small)$name[membership(walktr) == 2]
-plot(walktr, journal.graph, layout = layout.fruchterman.reingold, edge.arrow.size = .3, vertex.label = "", vertex.size = 3)
-
-#-- cut down to just the journals in communities of 2 or more, and cut number of steps in walk --#
-communities.to.include <- which(sizes(walktr) >= 2)
-vertex.inclusion.ind <- ifelse(membership(walktr) %in% communities.to.include, 1, 0)
-journal.graph.small <- delete.vertices(journal.graph, which(vertex.inclusion.ind == 0))
-walktr2 <- walktrap.community(journal.graph.small, steps = 3)
-plot(walktr2, journal.graph.small, layout = layout.fruchterman.reingold, edge.arrow.size = .3, vertex.label = "", vertex.size = 3)
-
-sizes(walktr2)
-#grp1 <- vertex.attributes(journal.graph.small)$name[membership(walktr2) == 1]
-#grp2 <- vertex.attributes(journal.graph.small)$name[membership(walktr2) == 2]
-grp3 <- vertex.attributes(journal.graph.small)$name[membership(walktr2) == 3]
-grp4 <- vertex.attributes(journal.graph.small)$name[membership(walktr2) == 4]
-grp5 <- vertex.attributes(journal.graph.small)$name[membership(walktr2) == 5]
-grp9 <- vertex.attributes(journal.graph.small)$name[membership(walktr2) == 9]
-grp12 <- vertex.attributes(journal.graph.small)$name[membership(walktr2) == 12]
-
-#-- cut down to just the journals in the five largest communities --#
-communities.to.include2 <- c(3, 4, 5, 9, 12)
-vertex.inclusion.ind2 <- ifelse(membership(walktr2) %in% communities.to.include2, 1, 0)
-journal.graph.verysmall <- delete.vertices(journal.graph.small, which(vertex.inclusion.ind2 == 0))
-walktr3 <- walktrap.community(journal.graph.verysmall, steps = 4)
-sizes(walktr3)
-grp1 <- vertex.attributes(journal.graph.verysmall)$name[membership(walktr3) == 1]
-grp2 <- vertex.attributes(journal.graph.verysmall)$name[membership(walktr3) == 2]
-grp3 <- vertex.attributes(journal.graph.verysmall)$name[membership(walktr3) == 3]
-grp4 <- vertex.attributes(journal.graph.verysmall)$name[membership(walktr3) == 4]
-grp5 <- vertex.attributes(journal.graph.verysmall)$name[membership(walktr3) == 5]
-grp6 <- vertex.attributes(journal.graph.verysmall)$name[membership(walktr3) == 6]
-grp7 <- vertex.attributes(journal.graph.verysmall)$name[membership(walktr3) == 7]
-#-- label every 10th node --#
-vertex.labels.verysmall <- vertex.lab.colors <- rep(NA, length(V(journal.graph.verysmall)$name))
-for(i in 1:length(vertex.labels.verysmall)){
-  vertex.labels.verysmall[i] <- ifelse (i %% 4 != 0, "", V(journal.graph.verysmall)$name[i])
-  vertex.lab.colors[i] <- ifelse(membership(walktr3)[i] == 1, "red3", ifelse(membership(walktr3)[i] == 2, "darkorange",
-                                                                             ifelse(membership(walktr3)[i] == 3, "forestgreen", 
-                                                                                    ifelse(membership(walktr3)[i] == 4, "aquamarine4",
-                                                                                           ifelse(membership(walktr3)[i] == 5, "blue", ifelse(membership(walktr3)[i] == 6, "purple",  "black"))))))
-}
-
-
-
-makeTransparent<-function(someColor, alpha=100)
-{
-  newColor<-col2rgb(someColor)
-  apply(newColor, 2, function(curcoldata){rgb(red=curcoldata[1], green=curcoldata[2],
-                                              blue=curcoldata[3],alpha=alpha, maxColorValue=255)})
-}
-
-edge.col <- makeTransparent("black", alpha = 30)
-
-plot(walktr3, journal.graph.verysmall, layout = layout.fruchterman.reingold, edge.arrow.size = .3, vertex.label = vertex.labels.verysmall, vertex.size = (V(journal.graph.verysmall)$size + 1) / 10, vertex.label.cex = .8, vertex.label.color = vertex.lab.colors, margin = c(-.25, -.75, -.25, -.75), edge.color = edge.col)
-legend(x = -1.3, y = -.75, bty = "n", fill = c("red3", "darkorange", "forestgreen", "aquamarine3", "purple", "blue"), c("General Biology", "Micro/Food Sci.", "Quantitative Biology", "Stats/Biostats", "Biotech", "Veterinary"))
-
-write.csv(grp1, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalGroupMemberships/GeneralBiol.csv")
-write.csv(grp2, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalGroupMemberships/MicroFoodSci.csv")
-write.csv(grp3, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalGroupMemberships/QuantBiol.csv")
-write.csv(grp4, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalGroupMemberships/Stats.csv")
-write.csv(grp5, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalGroupMemberships/Vet.csv")
-write.csv(grp6, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalGroupMemberships/Biotech.csv")
-
-included.journals <- V(journal.graph.verysmall)$name
-all.journals.short <- levels(factor(all.journals))
-excluded.journals <- all.journals.short[!(all.journals.short %in% included.journals)]
-
-write.csv(excluded.journals, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalGroupMemberships/ExcludedJournals.csv")
-
-#----------------------------------------#
-#-- END build journal citation network --#
-#----------------------------------------#
-
-DOI1.vec <- unlist(DOI1)
-DOI2.vec <- unlist(DOI2)
-
-length(DOI1.vec)
-length(DOI2.vec)
-
-edgelist.dataframe <- as.data.frame(cbind(DOI1.vec, DOI2.vec))
-edgelist.data.frame <- edgelist.dataframe[complete.cases(edgelist.dataframe), ]
-
-#----------------------------------------------#
-#-- get author list ---------------------------#
-#----------------------------------------------#
-
-author.list <- First <- Last <- author.frame <- data.list.au <- vector("list", length = dim(graph.data.frame)[1])
-trim <- function (x) gsub("^\\s+|\\s+$", "", x)
-for(i in 1:dim(graph.data.frame)[1]){
-  author.list[[i]] <- strsplit(x = as.character(graph.data.frame[i, ]$AF), split = ";")[[1]]
-  #  author.frame[[i]] <- matrix(nrow = length(author.list[[i]]), ncol = 2)
-  # if(length(author.list[[i]]) >=2){
-  for(j in 1:length(author.list[[i]])){
-    author.list[[i]][j] <- trim(author.list[[i]][j])
-    #      author.frame[[i]][j, ] <- strsplit(as.character(author.list[[i]][j]), split = ",")[[1]]
-    #    }
-  }
-}
-
-author.vec <- unlist(author.list)
-author.frame <- matrix(NA, nrow = length(author.vec), ncol = 2)
-to.use <- seq(1:dim(author.frame)[1])[-c(246, 742, 770, 974, 981)]
-for(i in to.use){
-  author.frame[i, ] <- strsplit(author.vec[i], ",")[[1]]
-}
-#--
-length(author.vec)
-length(unique(author.vec))
-levels(factor(author.vec))
-
-#-- edits on author.vec --#
-author.vec <- ifelse(author.vec == "Aerts, J. M.", "Aerts, Jean-Marie", author.vec)
-author.vec <- ifelse(author.vec == "Alexander, H. K.", "Alexander, Helen K.", author.vec)
-author.vec <- ifelse(author.vec == "Barrios, J. M.", "Barrios, Jose Miguel", author.vec)
-
-
-#----------------------------------------------#
-#-- plot publication network ------------------#
-#----------------------------------------------#
-
-graph.obj <- graph.data.frame(edgelist.data.frame, directed = T)
-V(graph.obj)$label.cex <- .2
-plot(graph.obj, layout=layout.fruchterman.reingold, vertex.label = "", vertex.size = 0.6)
-
-# cut down to only records that were selected for
-edgelist.data.frame.reduced <- subset(edgelist.data.frame, DOI2.vec %in% DOI1.vec)
-graph.obj.reduced <- graph.data.frame(edgelist.data.frame.reduced, directed = T)
-plot(graph.obj.reduced, layout = layout.fruchterman.reingold, vertex.label = "", vertex.size = 2)
-
-# pull in journals for all papers in DOI1 --#
-journal <- times.cited <- rep(NA, length(V(graph.obj.reduced)))
-for(i in 1:length(journal)){
-  k <- subset(graph.data.frame, as.character(DI) == as.character(V(graph.obj.reduced)$name)[i])
-  journal[i] <- as.character(k$SO[1])
-  times.cited[i] <- k$TC[1]
-}
-
-write.csv(levels(factor(journal)), "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalList_21Aug.csv")
-
-#-- sort journals into topical groups (current vsn. arbitrary) --#
-levels(factor(journal))
-gen.bio <- levels(factor(journal))[c(5, 22, 39, 42, 45, 46, 48)]
-topical.bio <- levels(factor(journal))[c(6, 18, 27, 30, 34, 37)]
-eco <- levels(factor(journal))[c(12, 13, 14, 20, 47, 51)]
-epi.eid <- levels(factor(journal))[c(7, 8, 10, 11, 15, 16, 19, 38, 49, 50, 52, 53)]
-vet.med <- levels(factor(journal))[c(2, 17, 40, 54, 55)]
-mathstat <- levels(factor(journal))[c(1, 3, 4, 9, 21, 23, 24, 26, 28, 29, 32, 33, 43)]
-crossdiscpmodeling <- levels(factor(journal))[c(25, 35, 36)]
-big <- levels(factor(journal))[c(31, 41, 44)]
-
-genbio <- levels(factor(journal))[gen.bio]
-
-vert.color <- ifelse(journal %in% gen.bio, "red", 
-                     ifelse(journal %in% topical.bio, "grey",
-                            ifelse(journal %in% eco, "green",
-                                   ifelse(journal %in% epi.eid, "yellow",
-                                          ifelse(journal %in% vet.med, "blue",
-                                                 ifelse(journal %in% mathstat, "orange",
-                                                        ifelse(journal %in% crossdiscpmodeling, "pink",
-                                                               ifelse(journal %in% big, "black", "white"))))))))
-
-plot(graph.obj.reduced, layout = layout.fruchterman.reingold, vertex.label = "", vertex.size = log(times.cited + 1) * 3, vertex.color = vert.color)
