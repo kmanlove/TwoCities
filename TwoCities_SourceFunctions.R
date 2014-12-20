@@ -68,3 +68,38 @@ as.dendrogram.igraph.walktrap <- function (object, hang=-1, use.modularity=FALSE
       class(z) <- "dendrogram"
       z
 }
+
+#-------------------------------------------#
+#-- reader assignment function -------------#
+#-------------------------------------------#
+ReaderAssignmentFull <- function(number.readers, papers.per.reader, fixed.seed, number.communities, quantiles.to.use){
+  comm.list <- vector("list", number.communities)
+  comm.quantiles <- matrix(NA, nrow = number.communities, ncol = length(quantiled.to.use))
+  for(i in 1:number.communities){
+    comm[[i]] <- subset(data.frame, JournalCommunity == i)
+    comm.quantiles[i, ] <- quantile(comm[[i]]$AnnualizedCitationRate, quantiles.to.use, na.rm = T)
+  } 
+}
+
+ReaderAssignmentSpecificGrp <- function(data.frame, number.readers, papers.per.reader, fixed.seed, community.to.use, quantiles.to.use){
+  sampling.pattern <- cbind(c(1, 5, 9), c(2, 6, 7), c(3, 4, 8))
+  comm <- subset(data.frame, JournalCommunity == community.to.use)
+  comm.quantiles <- quantile(comm$AnnualizedCitationRate, quantiles.to.use, na.rm = T)
+  sampled.papers <- comm[c(
+         sample(x = which(comm$PubYear %in% seq(1998, 2002) & comm$AnnualizedCitationRate <= comm.quantiles[1]), min(number.readers, length(which(comm$PubYear %in% seq(1998, 2002) & comm$AnnualizedCitationRate <= comm.quantiles[1]))), rep = F), 
+         sample(x = which(comm$PubYear %in% seq(1998, 2002) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), min(number.readers, length(which(comm$PubYear %in% seq(1998, 2002) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), rep = F),
+         sample(x = which(comm$PubYear %in% seq(1998, 2002) & comm$AnnualizedCitationRate >= comm.quantiles[4]), min(number.readers, length(which(comm$PubYear %in% seq(1998, 2002) & comm$AnnualizedCitationRate >= comm.quantiles[4]))), rep = F),
+         sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate <= comm.quantiles[1]), min(number.readers, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate <= comm.quantiles[1]))), rep = F), 
+         sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), min(number.readers, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), rep = F),
+         sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[4]), min(number.readers, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[4]))), rep = F),
+         sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate <= comm.quantiles[1]), min(number.readers, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate <= comm.quantiles[1]))), rep = F), 
+         sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), min(number.readers, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), rep = F),
+         sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[4]), min(number.readers, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[4]))), rep = F)
+         ), ]
+ reader.paper.list <- reader.paper.list.reduced <- vector("list", number.readers)
+ for(i in 1:number.readers){
+   reader.paper.list[[i]] <- sampled.papers[which(1:dim(sampled.papers)[1] %% number.readers == (i - 1)),]
+   reader.paper.list.reduced[[i]] <- reader.paper.list[[i]][sampling.pattern[, ((i %% number.readers) %% 3) + 1], ]
+ } 
+ return(reader.paper.list.reduced)
+}
