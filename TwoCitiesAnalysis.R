@@ -1,6 +1,7 @@
 # load required packages and source functions
 require(igraph)
 require(ape)
+source("~/work/Kezia/Research/EcologyPapers/TwoCities/Code/TwoCities/TwoCities_SourceFunctions.R")
 
 #------------------------------------------------------------#
 #-- download data from Google Drive:-------------------------#
@@ -34,12 +35,12 @@ plot(order.source, type = "h", xaxt = "n", ylab = "Frequency", ylim = c(0, 180),
 axis(side = 1, at = c(1:112), labels = names(order.source), las = 2, cex.axis = .5)
 
 # histogram of distribution of citations
-par(mfrow = c(2, 2))
+par(mfrow = c(2, 2), mex = 1, oma = c(-2, 0, 0, 0))
 hist(log(data.frame$TimesCited + 1), col = "grey80", main = "", xaxt = "n", xlab = "log(Total Citations + 1)")
 axis(side = 1, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
-hist(log(data.frame$AnnualizedCitationRate + 1), col = "grey80", xlab = "log(Annualized Citations + 1)", main = "", xaxt = "n")
+hist(log(data.frame$AnnualizedCitationRate + 1), col = "grey80", xlab = "log(Annual Citations + 1)", main = "", xaxt = "n")
 axis(side = 1, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
-plot(log(data.frame$AnnualizedCitationRate + 1) ~ data.frame$PubYear, yaxt = "n", ylab = "log(Annualized citations + 1)", xlab = "year")
+plot(log(data.frame$AnnualizedCitationRate + 1) ~ data.frame$PubYear, yaxt = "n", ylab = "log(Annual citations + 1)", xlab = "year of publication")
 axis(side = 2, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
 
 
@@ -247,7 +248,7 @@ which(V(giant.compo.aus)$size >= 24)[1]
 trim.leading <- function (x)  sub("^\\s+", "", x)
 citation.list <- citation.frame <- citation.frame.small <- vector("list", dim(data.frame)[1])
 first.author <- pub.year <- rep(NA, dim(data.frame)[1])
-papers.with.cites <- c(1:dim(data.frame)[1])[-c(1, 484, 591, 843)]
+papers.with.cites <- c(1:dim(data.frame)[1])[-c(1, 494, 603, 858)]
 for(i in papers.with.cites){
   citation.list[[i]] <- strsplit(x = as.character(data.frame$CitedRefs)[i], split = ";")[[1]]
   citation.frame[[i]] <- matrix(NA, nrow = length(citation.list[[i]]), ncol = 15)
@@ -266,11 +267,11 @@ for(i in papers.with.cites){
   }
 }
 
-full.citation.frame <- do.call("rbind", citation.frame) # 68651 total refs
+full.citation.frame <- do.call("rbind", citation.frame) # 69905 total refs
 
-# loop over papers. build relations into 1605 X 1605 matrix
+# loop over papers. build relations into 1632 X 1632 matrix
 # rows are cited paper, cols are new papers
-assoc.mat <- matrix(NA, nrow = 1605, ncol = 1605)
+assoc.mat <- matrix(NA, nrow = dim(data.frame)[1], ncol = dim(data.frame)[1])
 for(i in papers.with.cites){
   for(j in papers.with.cites){
     if(i == j){
@@ -337,8 +338,8 @@ plot(giant.compo.papers, margin = margin.dims, vertex.frame.color = "black", ver
 #-----------------------------------------#
 # aggregated annualized citations of database papers by journal
 journal.total.cites <- journal.total.papers <- journal.total.years <- journal.agg.annual.cites <- rep(NA, 108)
-journal.subsets <- vector("list", 108)
-for(i in 1:108){ # in this loop, calculate annualized citation rate averaged over all papers from each journal
+journal.subsets <- vector("list", 112)
+for(i in 1:112){ # in this loop, calculate annualized citation rate averaged over all papers from each journal
   journal.subsets[[i]] <- subset(data.frame, Source == levels(data.frame$Source)[i])
   journal.total.cites[i] <- sum(journal.subsets[[i]]$TimesCited)
   journal.total.years[i] <- sum(2014 - journal.subsets[[i]]$PubYear)
@@ -349,12 +350,12 @@ for(i in 1:108){ # in this loop, calculate annualized citation rate averaged ove
 order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
 # order command reorders levels so that they appear in descending frequency
 par(mfrow = c(1, 1), las = 2, mar = c(15, 6, 1, 1))
-plot(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)] ~ c(1:108), type = "h", xaxt = "n", ylab = "Avg. annualize citation rate for \n all papers in dataset", xlab = "", lwd = journal.total.papers[order(journal.agg.annual.cites, decreasing = T)] * .5)
+plot(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)] ~ c(1:112), type = "h", xaxt = "n", ylab = "Avg. annualize citation rate for \n all papers in dataset", xlab = "", lwd = journal.total.papers[order(journal.agg.annual.cites, decreasing = T)] * .5)
 text(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)][1:20] ~ c(seq(1:20) + 0.25), labels = paste("(", journal.total.papers[order(journal.agg.annual.cites, decreasing = T)][1:20], ")", sep = ""), cex = .6)
-axis(side = 1, at = c(1:108), labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)]
+axis(side = 1, at = c(1:112), labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)]
      , las = 2, cex.axis = .5)
 
-journal1 <- journal2 <- matrix(NA, nrow = 1605, ncol = 1605)
+journal1 <- journal2 <- matrix(NA, nrow = dim(data.frame)[1], ncol = dim(data.frame)[1])
 for(i in papers.with.cites){
   for(j in papers.with.cites){
     if(is.na(assoc.mat[i, j]) == F & (assoc.mat[i, j] == 1) == T){
@@ -393,6 +394,7 @@ V(journal.graph.small)$name
 plot(journal.graph.small, layout = layout.fruchterman.reingold, vertex.size = log(table(journal.frame$journal1.vec) + 1) * 2, vertex.label = NA, edge.arrow.size = .05)
 
 # journal communities
+set.seed(123)
 walktr.jo <- walktrap.community(journal.graph.small, steps = 4)
 walktr.jo$membership
 table(walktr.jo$membership)
@@ -424,6 +426,44 @@ in.colbar <- c("forestgreen", "navyblue", "red", "black", "green", "seagreen4", 
 par(mar = c(0, 0, 0, 0), cex.axis = .7)
 dendPlot(walktr.jo, mode = "phylo", label.offset = .5, cex = .8, colbar = in.colbar, direction = "downwards")
 
+
+# extract journal community membership for each paper
+journal.community.membership <- data.frame(cbind(jo.vertex.ind, V(journal.graph.small)$name))
+names(journal.community.membership) <- c("Community", "JournalName")
+data.frame$JournalCommunity <- rep(NA, dim(data.frame)[1])
+for(i in 1:dim(data.frame)[1]){
+  journal.source <- subset(journal.community.membership, as.character(JournalName) == as.character(data.frame$Source[i]))
+  data.frame$JournalCommunity[i] <- as.character(journal.source$Community[1])
+}
+
+#write.csv(data.frame$JournalCommunity, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalCommunityVector_16Dec2014.csv")
+
+#---------------------------------------------#
+#-- Stratified sampling set-up ---------------#
+#---------------------------------------------#
+comm1 <- subset(data.frame, JournalCommunity == 1) # Ecology
+comm2 <- subset(data.frame, JournalCommunity == 2) # General Bio
+comm3 <- subset(data.frame, JournalCommunity == 3) # Vet
+
+levels(factor(comm1$Source))
+levels(factor(comm2$Source))
+levels(factor(comm3$Source))
+
+# assume 10 readers; 3 papers / reader
+Comm1ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 1, fixed.seed = 123, community.to.use = 1, quantiles.to.use = c(0.2, 0.4, 0.6, 0.8))
+Comm2ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 1, fixed.seed = 123, community.to.use = 2, quantiles.to.use = c(0.2, 0.4, 0.6, 0.8))
+Comm3ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 1, fixed.seed = 123, community.to.use = 3, quantiles.to.use = c(0.2, 0.4, 0.6, 0.8))
+
+readers <- c("Bande", "Craft", "Cross", "Huyvaert", "Joseph", "Manlove", "Miller", "Nol", "OBrien", "Patyk", "Walker", "Walsch")
+comm1.reader.frame <- do.call("rbind", Comm1ReaderList)
+comm1.reader.frame$Reader <- rep(readers[1:4], each = 3)
+comm2.reader.frame <- do.call("rbind", Comm2ReaderList)
+comm2.reader.frame$Reader <- rep(readers[5:8], each = 3)
+comm3.reader.frame <- do.call("rbind", Comm3ReaderList)
+comm3.reader.frame$Reader <- rep(readers[9:12], each = 3)
+
+reader.assignments <- as.data.frame(rbind(comm1.reader.frame, comm2.reader.frame, comm3.reader.frame))
+write.csv(reader.assignments, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/PreliminaryReadingAssignments_16Dec2014.csv")
 
 #-------------------------------------------------------------------------------------#
 #-- regression of avg. author closeness and betweenness on annualized citation rate --#
