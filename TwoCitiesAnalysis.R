@@ -441,9 +441,20 @@ for(i in 1:dim(data.frame)[1]){
 #---------------------------------------------#
 #-- Stratified sampling set-up ---------------#
 #---------------------------------------------#
-comm1 <- subset(data.frame, JournalCommunity == 1) # Ecology
-comm2 <- subset(data.frame, JournalCommunity == 2) # General Bio
-comm3 <- subset(data.frame, JournalCommunity == 3) # Vet
+comm1 <- subset(data.frame, JournalCommunity == 1) # Ecology (310 papers)
+table(comm1$PubYear %in% seq(1998, 2002)) # 40 in 1998-2002
+table(comm1$PubYear %in% seq(2003, 2007)) # 67 in 2003-2007
+table(comm1$PubYear %in% seq(2008, 2012)) # 118 in 2008-2012
+
+comm2 <- subset(data.frame, JournalCommunity == 2) # General Bio (1043 papers)
+table(comm2$PubYear %in% seq(1998, 2002)) # 81 in 1998-2002
+table(comm2$PubYear %in% seq(2003, 2007)) # 188 in 2003-2007
+table(comm2$PubYear %in% seq(2008, 2012)) # 453 in 2008-2012
+
+comm3 <- subset(data.frame, JournalCommunity == 3) # Vet (198 papers)
+table(comm3$PubYear %in% seq(1998, 2002)) # 23 in 1998-2002
+table(comm3$PubYear %in% seq(2003, 2007)) # 44 in 2003-2007
+table(comm3$PubYear %in% seq(2008, 2012)) # 81 in 2008-2012
 
 levels(factor(comm1$Source))
 levels(factor(comm2$Source))
