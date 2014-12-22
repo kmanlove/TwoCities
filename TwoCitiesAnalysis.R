@@ -159,6 +159,7 @@ author.vertex.size <- apply(author.mat, 1, sum)
 
 # description of author graph
 author.graph <- graph.adjacency(author.mat, mode = "undirected")
+set.seed(123)
 author.compos <- clusters(author.graph)
 author.compos$csize[which.max(author.compos$csize[-1])] # get size of second-largest component
 table(author.compos$csize == 1) # table isolated nodes
