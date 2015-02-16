@@ -136,32 +136,8 @@ V(giant.compo.aus)$name[which(V(giant.compo.aus)$size >= 24)]
 which(V(giant.compo.aus)$size >= 24)[1]
 
 #---------------------------------#
-#-- paper network ----------------#
+#-- citation network -------------#
 #---------------------------------# 
-# 1) extract citations for each paper and store in citation.list
-#trim.leading <- function (x)  sub("^\\s+", "", x)
-# citation.list <- citation.frame <- citation.frame.small <- vector("list", dim(data.frame)[1])
-# first.author <- pub.year <- rep(NA, dim(data.frame)[1])
-# papers.with.cites <- c(1:dim(data.frame)[1])[-c(1, 494, 603, 858)]
-# for(i in papers.with.cites){
-#   citation.list[[i]] <- strsplit(x = as.character(data.frame$CitedRefs)[i], split = ";")[[1]]
-#   citation.frame[[i]] <- matrix(NA, nrow = length(citation.list[[i]]), ncol = 15)
-#   citation.frame.small[[i]] <-  matrix(NA, nrow = length(citation.list[[i]]), ncol = 12)
-#   first.author[i] <- strsplit(as.character(data.frame$Authors[i]), split = ";")[[1]][1]
-#   pub.year[i] <- data.frame$PubYear[i]
-#   for(j in 1:length(citation.list[[i]])){
-#     citation.frame.small[[i]][j, ] <- trim.leading(c(strsplit(citation.list[[i]][j], split = ",")[[1]], rep(NA, 12 - length(strsplit(citation.list[[i]][j], split = ",")[[1]]))))
-#     if(is.na(as.numeric(citation.frame.small[[i]][j, 1])) == F){
-#       citation.frame.small[[i]][j, ] <- c(NA, citation.frame.small[[i]][j, -12])
-#     }
-#     citation.frame[[i]][j, ] <- c(as.character(data.frame$DOI)[i], as.character(first.author[i]), pub.year[i], citation.frame.small[[i]][j, ])
-#     citation.frame[[i]][j, 1] <- paste("DOI ", citation.frame[[i]][j, 1], sep = "")    
-#     citation.frame[[i]][j, 2] <- tolower(trim.leading(citation.frame[[i]][j, 2]))
-#     citation.frame[[i]][j, 4] <- tolower(trim.leading(citation.frame[[i]][j, 4]))
-#   }
-# }
-
-full.citation.frame <- do.call("rbind", citation.frame) # 69905 total refs
 
 full.citation.frame <- BuildCitationFrame(data.frame.in = data.frame, no.cite.papers = c(1, 494, 603, 858))
 
