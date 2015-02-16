@@ -344,7 +344,7 @@ BuildAssocMat <- function(cite.list)
 citation.list.in <- citation.list[papers.with.cites]
 assoc.test <- BuildAssocMat(citation.list.in)
 
-BuildJournalGraph <- function(data.frame.in, )
+BuildJournalGraph <- function(data.frame.in)
 {
   journal1 <- journal2 <- matrix(NA, nrow = dim(data.frame.in)[1], ncol = dim(data.frame.in)[1])
   for(i in dim(data.frame.in)[1])
