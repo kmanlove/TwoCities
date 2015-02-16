@@ -303,11 +303,10 @@ BuildAuthorGraph <- function(all.authors, unique.authors)
   return(author.graph)
 }
 
-
-all.authors <- BuildAuthorFrame(data.frame.in = data.frame)
-affils.test <- GetAuthorAffils(author.frame = all.authors)
-unique.authors <- AuthorMerge(author.frame = affils.test)
-author.graph.test <- BuildAuthorGraph(all.authors = affils.test, unique.authors)
+#all.authors <- BuildAuthorFrame(data.frame.in = data.frame)
+#affils.test <- GetAuthorAffils(author.frame = all.authors)
+#unique.authors <- AuthorMerge(author.frame = affils.test)
+#author.graph.test <- BuildAuthorGraph(all.authors = affils.test, unique.authors)
 
 #-------------------------------#
 #-- Build network functions ----#
@@ -341,8 +340,8 @@ BuildAssocMat <- function(cite.list)
   return(assoc.mat)
 }
 
-citation.list.in <- citation.list[papers.with.cites]
-assoc.test <- BuildAssocMat(citation.list.in)
+#citation.list.in <- citation.list[papers.with.cites]
+#assoc.test <- BuildAssocMat(citation.list.in)
 
 BuildJournalGraph <- function(data.frame.in)
 {
