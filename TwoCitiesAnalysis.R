@@ -14,7 +14,6 @@ source("~/work/Kezia/Research/EcologyPapers/TwoCities/Code/TwoCities/TwoCities_S
 #-- AuthorID = unique author identified: all lower case. last name <space> first initial --#
 #------------------------------------------------------------------------------------------#
 
-
 #-------------------------------------------#
 #-- Preliminary description of papers ------#
 #-------------------------------------------#
@@ -338,7 +337,7 @@ plot(giant.compo.papers, margin = margin.dims, vertex.frame.color = "black", ver
 #-- Journal network ----------------------#
 #-----------------------------------------#
 # aggregated annualized citations of database papers by journal
-journal.total.cites <- journal.total.papers <- journal.total.years <- journal.agg.annual.cites <- rep(NA, 108)
+journal.total.cites <- journal.total.papers <- journal.total.years <- journal.agg.annual.cites <- rep(NA, 112)
 journal.subsets <- vector("list", 112)
 for(i in 1:112){ # in this loop, calculate annualized citation rate averaged over all papers from each journal
   journal.subsets[[i]] <- subset(data.frame, Source == levels(data.frame$Source)[i])
@@ -462,20 +461,20 @@ levels(factor(comm2$Source))
 levels(factor(comm3$Source))
 
 # assume 10 readers; 3 papers / reader
-Comm1ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 1, fixed.seed = 123, community.to.use = 1, quantiles.to.use = c(0.2, 0.4, 0.6, 0.8))
-Comm2ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 1, fixed.seed = 123, community.to.use = 2, quantiles.to.use = c(0.2, 0.4, 0.6, 0.8))
-Comm3ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 1, fixed.seed = 123, community.to.use = 3, quantiles.to.use = c(0.2, 0.4, 0.6, 0.8))
+Comm1ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 20, fixed.seed = 123, community.to.use = 1, quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
+Comm2ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 20, fixed.seed = 123, community.to.use = 2, quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
+Comm3ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 20, fixed.seed = 123, community.to.use = 3, quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
 
 readers <- c("Bande", "Craft", "Cross", "Huyvaert", "Joseph", "Manlove", "Miller", "Nol", "OBrien", "Patyk", "Walker", "Walsch")
 comm1.reader.frame <- do.call("rbind", Comm1ReaderList)
-comm1.reader.frame$Reader <- rep(readers[1:4], each = 3)
+comm1.reader.frame$Reader <- rep(readers[1:4], each = 18)
 comm2.reader.frame <- do.call("rbind", Comm2ReaderList)
-comm2.reader.frame$Reader <- rep(readers[5:8], each = 3)
+comm2.reader.frame$Reader <- rep(readers[5:8], each = 18)
 comm3.reader.frame <- do.call("rbind", Comm3ReaderList)
-comm3.reader.frame$Reader <- rep(readers[9:12], each = 3)
+comm3.reader.frame$Reader <- rep(readers[9:12], each = 18)
 
-reader.assignments <- as.data.frame(rbind(comm1.reader.frame, comm2.reader.frame, comm3.reader.frame))
-write.csv(reader.assignments, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/PreliminaryReadingAssignments_16Dec2014.csv")
+full.reader.assignments <- as.data.frame(rbind(comm1.reader.frame, comm2.reader.frame, comm3.reader.frame))
+write.csv(full.reader.assignments, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/FullReadingAssignments_11Jan2015.csv")
 
 #-------------------------------------------------------------------------------------#
 #-- regression of avg. author closeness and betweenness on annualized citation rate --#
