@@ -324,7 +324,7 @@ BuildCitationFrame <- function(data.frame.in, no.cite.papers)
                                                      )
       if(is.na(as.numeric(citation.frame.small[[i]][j, 1])) == F)
       {
-      citation.frame.small[[i]][j, ] <- c(NA, citation.frame.small[[i]][j, -12])
+        citation.frame.small[[i]][j, ] <- c(NA, citation.frame.small[[i]][j, -12])
       } # END If is.na()
     citation.frame[[i]][j, ] <- c(as.character(data.frame.in$DOI)[i], 
                                   as.character(first.author[i]), 
@@ -336,8 +336,8 @@ BuildCitationFrame <- function(data.frame.in, no.cite.papers)
     } # j
   } # i
 
-  full.citation.frame <- do.call("rbind", citation.frame) # 69905 total refs
-  return(full.citation.frame)
+#  full.citation.frame <- do.call("rbind", citation.frame) # 69905 total refs
+  return(cite.frame = citation.frame)
 }
 
 # Paper association matrix
