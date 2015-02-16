@@ -123,14 +123,13 @@ ReaderAssignmentSpecificGrp <- function(data.frame, number.readers, papers.per.r
  return(reader.paper.list)
 }
 
-#--------------------------------------------------------------------------#
-#-- Extract author information and build author info storage structures ---#
-#--------------------------------------------------------------------------#
-
 trim <- function (x) gsub("^\\s+|\\s+$", "", x) # trim cuts leading whitespace off of any character string
 
+#-------------------------------------------------------------------------------#
+#-- Functions to extract author information and build author info structures ---#
+#-------------------------------------------------------------------------------#
 
-# extract author institution information from data.frame$C1
+# Build author dataframe
 BuildAuthorFrame <- function(data.frame.in)
 {
   institution.list <- institution.list2 <- author.institutions <- vector("list", length = dim(data.frame.in)[1])
@@ -303,10 +302,10 @@ BuildAuthorGraph <- function(all.authors, unique.authors)
   return(author.graph)
 }
 
-#all.authors <- BuildAuthorFrame(data.frame.in = data.frame)
-#affils.test <- GetAuthorAffils(author.frame = all.authors)
-#unique.authors <- AuthorMerge(author.frame = affils.test)
-#author.graph.test <- BuildAuthorGraph(all.authors = affils.test, unique.authors)
+#-------------------------------------------------------------------------------#
+#-- Functions to extract citation information and build cite info structures ---#
+#-------------------------------------------------------------------------------#
+
 
 #-------------------------------#
 #-- Build network functions ----#
