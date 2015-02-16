@@ -340,6 +340,31 @@ BuildCitationFrame <- function(data.frame.in, no.cite.papers)
   return(full.citation.frame)
 }
 
+# Paper association matrix
+BuildAssocMat <- function(data.frame.in, no.cite.papers, cite.frame)
+{
+  assoc.mat <- matrix(NA, nrow = dim(data.frame.in)[1], ncol = dim(data.frame.in)[1])
+  papers.with.cites <- c(1:dim(data.frame.in)[1])[-c(no.cite.papers)]  
+  for(i in papers.with.cites)
+  {
+    for(j in papers.with.cites)
+    {
+      if(i == j)
+      {
+      assoc.mat[i, j] <- NA
+      } # END if i == j
+      else{
+      assoc.mat[i, j] <- ifelse(((cite.frame[[i]][1, 1] %in% cite.frame[[j]][ ,9]) | 
+                                   (paste(cite.frame[[i]][1 ,2], " ", cite.frame[[i]][1, 3]) %in% paste(cite.frame[[j]][ , 4], " ", cite.frame[[j]][, 5]))), 
+                                1, 0)
+      } # END else i != j
+    } # j
+    print(i)
+  } # i
+  
+  return(assoc.mat)
+}
+
 #-------------------------------#
 #-- Build network functions ----#
 #-------------------------------#
