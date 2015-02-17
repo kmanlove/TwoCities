@@ -50,65 +50,6 @@ unique.authors.new <- as.data.frame(cbind(unique.authors, author.diags$out.uniqu
 par(mfrow = c(1, 1))
 plot(author.graph, margin = c(-.75, -.75, 0, 0), vertex.size = 1, vertex.label = NA, edge.arrow.size = .05)
 
-# # author communities
-# walktr.au <- walktrap.community(author.graph, steps = 20)
-# membership(walktr.au)
-# sizes(walktr.au)
-# component1.au <- vertex.attributes(author.graph)$name[membership(walktr.au) == 1]
-# component2.au <- vertex.attributes(author.graph)$name[membership(walktr.au) == 2]
-# component3.au <- vertex.attributes(author.graph)$name[membership(walktr.au) == 3]
-# plot(walktr.au, 
-#      margin = c(-.75, -.75, 0, 0), 
-#      author.graph, 
-#      layout = layout.fruchterman.reingold, 
-#      edge.arrow.size = .3, 
-#      vertex.label = "", 
-#      vertex.size = 3)
-# 
-# # cut down to just authors in communities of 10 or more
-# communities.to.include.au <- which(sizes(walktr.au) >= 20)
-# vertex.inclusion.ind.au <- ifelse(membership(walktr.au) %in% communities.to.include.au, 1, 0)
-# author.graph.small <- delete.vertices(author.graph, which(vertex.inclusion.ind.au == 0))
-# multi.au <- multilevel.community(author.graph.small)
-# 
-# vertex.labels.verysmall <- rep(NA, length(V(author.graph.small)$name))
-# for(i in 1:length(vertex.labels.verysmall)){
-#   vertex.labels.verysmall[i] <- ifelse (i %in% which(V(author.graph.small)$size >= 50), 
-#                                         toupper(gsub(" .", "", V(author.graph.small)$name[i])), 
-#                                         "")
-# }
-# 
-# labeled.scientists <- V(author.graph.small)$name[which(V(author.graph.small)$size >= 50)]
-# 
-# plot(author.graph.small, 
-#      vertex.frame.color = "grey70", 
-#      vertex.label = vertex.labels.verysmall,  
-#      vertex.label.cex = .5, 
-#      vertex.label.color = "black", 
-#      margin = c(-.9, -.95, -.3, -.7), 
-#      layout = layout.fruchterman.reingold, 
-#      edge.width = 0.25, 
-#      edge.color = "grey80", 
-#      edge.arrow.size = 0, 
-#      vertex.label = "", 
-#      vertex.size = V(author.graph.small)$size / 12, 
-#      vertex.color = "grey80")
-# 
-# plot(multi.au, 
-#      author.graph.small, 
-#      vertex.frame.color = "grey70", 
-#      vertex.label = vertex.labels.verysmall,  
-#      vertex.label.cex = .5, 
-#      vertex.label.color = "black", 
-#      margin = c(-.9, -.95, -.3, -.7), 
-#      layout = layout.fruchterman.reingold, 
-#      edge.width = 0.25, 
-#      edge.color = "grey80", 
-#      edge.arrow.size = 0, 
-#      vertex.label = "", 
-#      vertex.size = V(author.graph.small)$size / 12, 
-#      vertex.color = "grey80")
-
 # cut down to just giant component
 author.clusters <- clusters(author.graph)
 giant.compo.aus <- delete.vertices(author.graph, which(clusters(author.graph)$membership != 1))
