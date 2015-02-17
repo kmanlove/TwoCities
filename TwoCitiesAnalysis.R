@@ -1,7 +1,7 @@
 # load required packages and source functions
 require(igraph)
 require(ape)
-# source("~/work/Kezia/Research/EcologyPapers/TwoCities/Code/TwoCities/TwoCities_SourceFunctions.R")
+source("./TwoCities_SourceFunctions.R")
 
 #------------------------------------------------------------#
 #-- download data from Google Drive:-------------------------#
@@ -45,8 +45,6 @@ axis(side = 2, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(
 #-----------------------------------------#
 #-- Author network -----------------------#
 #-----------------------------------------#
-source("./TwoCities_SourceFunctions.R")
-
 all.authors <- BuildAuthorFrame(data.frame.in = data.frame)
 affils.test <- GetAuthorAffils(author.frame = all.authors)
 unique.authors <- AuthorMerge(author.frame = affils.test)
@@ -144,20 +142,6 @@ cite.list <- BuildCitationFrame(data.frame.in = data.frame, no.cite.papers = no.
 assoc.mat <- BuildAssocMat(data.frame.in = data.frame[-no.cite.papers.in, -no.cite.papers.in], cite.frame = cite.list[-no.cite.papers.in])
 full.citation.frame <- do.call("rbind", cite.list) # 69905 total refs
 
-# # loop over papers. build relations into 1632 X 1632 matrix
-# # rows are cited paper, cols are new papers
-# assoc.mat <- matrix(NA, nrow = dim(data.frame)[1], ncol = dim(data.frame)[1])
-# for(i in papers.with.cites){
-#   for(j in papers.with.cites){
-#     if(i == j){
-#       assoc.mat[i, j] <- NA
-#     } else{
-#       assoc.mat[i, j] <- ifelse(((citation.frame[[i]][1, 1] %in% citation.frame[[j]][ ,9]) | (paste(citation.frame[[i]][1 ,2], " ", citation.frame[[i]][1, 3]) %in% paste(citation.frame[[j]][ , 4], " ", citation.frame[[j]][, 5]))), 1, 0)
-#     }
-#   }
-#   print(i)
-# }
-
 paper.graph <- graph.adjacency(assoc.mat)
 V(paper.graph)$size <- data.frame$TimesCited
 V(paper.graph)$name <- rep(NA, 1605)
@@ -206,8 +190,6 @@ margin.dims = c(0, 0, 0, 0)
 plot(giant.compo.papers, margin = margin.dims, vertex.frame.color = "black", vertex.label = "",  vertex.label.cex = .5, vertex.label.color = "black", layout = fixed.paper.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = V(giant.compo.papers)$size / 30, vertex.color = paper.vertex.colors)
 #dev.off()
 
-
-
 #-----------------------------------------#
 #-- Journal network ----------------------#
 #-----------------------------------------#
@@ -229,32 +211,10 @@ plot(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)] ~
 text(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)][1:20] ~ c(seq(1:20) + 0.25), labels = paste("(", journal.total.papers[order(journal.agg.annual.cites, decreasing = T)][1:20], ")", sep = ""), cex = .6)
 axis(side = 1, at = c(1:112), labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)]
      , las = 2, cex.axis = .5)
-# 
-# journal1 <- journal2 <- matrix(NA, nrow = dim(data.frame)[1], ncol = dim(data.frame)[1])
-# for(i in papers.with.cites){
-#   for(j in papers.with.cites){
-#     if(is.na(assoc.mat[i, j]) == F & (assoc.mat[i, j] == 1) == T){
-#       journal1[i, j] <- as.character(data.frame[i, ]$Source)
-#       journal2[i, j] <- as.character(data.frame[j, ]$Source)
-#     } else{
-#       journal1[i, j] <- NA
-#       journal2[i, j] <- NA
-#     }
-#   }
-# }
-# 
-# journal1.vec <- as.character(na.omit(as.vector(journal1)))
-# journal2.vec <- as.character(na.omit(as.vector(journal2)))
-# journal.frame <- as.data.frame(cbind(journal1.vec, journal2.vec))
-# journal.frame$journal1.vec <- factor(journal.frame$journal1.vec, levels = levels(factor(c(journal1.vec, journal2.vec))))
-# journal.frame$journal2.vec <- factor(journal.frame$journal2.vec, levels = levels(factor(c(journal1.vec, journal2.vec))))
-# journal.crosstab <- table(journal.frame$journal1.vec, journal.frame$journal2.vec) # 95 journals connected via edges
-# journal.graph <- graph.adjacency(journal.crosstab, mode = "directed", weighted = T)
 
-journal.graph <- BuildJournalGraph(data.frame.in = data.frame, assoc.mat.in = assoc.mat)
-journal.graph.out <- graph.adjacency(journal.crosstab, mode = "directed", weighted = T)
+journal.graph <- BuildJournalGraph(data.frame.in = data.frame[-no.cite.papers, -no.cite.papers], assoc.mat.in = assoc.mat)
 
-plot(journal.graph.out)
+plot(journal.graph)
 # Qu: which journals are excluded?
 disconnected.journals <- levels(factor(data.frame$Source))[!(levels(factor(data.frame$Source)) %in% levels(journal.frame$journal1.vec))]
 V(journal.graph)$size <- table(data.frame$Source)[!(names(table(data.frame$Source)) %in% disconnected.journals)]
