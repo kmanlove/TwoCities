@@ -123,7 +123,7 @@ ReaderAssignmentSpecificGrp <- function(data.frame, number.readers, papers.per.r
  return(reader.paper.list)
 }
 
-trim <- function (x) gsub("^\\s+|\\s+$", "", x) # trim cuts leading whitespace off of any character string
+trim <- trim.leading <- function (x) gsub("^\\s+|\\s+$", "", x) # trim cuts leading whitespace off of any character string
 
 #-------------------------------------------------------------------------------#
 #-- Functions to extract author information and build author info structures ---#
@@ -292,6 +292,9 @@ BuildAuthorGraph <- function(all.authors, unique.authors)
     addvals <- which(authors %in% names(table(coauthors$AuthorID)))
     author.mat[i, addvals] <- author.edgeweights
     print(i)
+    V(author.graph)$size <- unique.authors$TotPapers
+    V(author.graph)$name <- authors
+    
   } # i
   
   diag(author.mat) <- rep(0, dim(author.mat)[1])
@@ -365,12 +368,45 @@ BuildAssocMat <- function(data.frame.in, cite.frame)
   return(assoc.mat)
 }
 
+BuildPaperGraph <- function(assoc.mat, data.frame)
+{
+  paper.graph <- graph.adjacency(assoc.mat)
+  V(paper.graph)$size <- data.frame$TimesCited
+  V(paper.graph)$name <- rep(NA, length(V(paper.graph)))
+  for(i in 2:length(V(paper.graph))){
+    first.i <- strsplit(strsplit(as.character(data.frame$Authors)[i], split = ";")[[1]][1], 
+                        split = ",")[[1]][1]
+    V(paper.graph)$name[i] <- paste(first.i, " ", as.character(data.frame$PubYear[i]), " ", as.character(data.frame$Title[i]), sep = "")
+  }
+  return(paper.graph)
+}
+
+
 #-------------------------------------------------------------------------------#
 #-- Functions to extract journal information and build journal info structures -#
 #-------------------------------------------------------------------------------#
 
-#citation.list.in <- citation.list[papers.with.cites]
-#assoc.test <- BuildAssocMat(citation.list.in)
+ExtractJournalData <- function(data.frame)
+{
+  total.cites <- total.papers <- rep(NA, length(levels(data.frame$Source)))
+  total.years <- agg.annual.cites <- rep(NA, length(levels(data.frame$Source)))
+  journal.subsets <- vector("list", length(levels(data.frame$Source)))
+  for(i in 1:length(levels(data.frame$Source))){ # in this loop, calculate annualized citation rate averaged over all papers from each journal
+    journal.subsets[[i]] <- subset(data.frame, Source == levels(data.frame$Source)[i])
+    total.cites[i] <- sum(journal.subsets[[i]]$TimesCited)
+    total.years[i] <- sum(2014 - journal.subsets[[i]]$PubYear)
+    agg.annual.cites[i] <- total.cites[i] / total.years[i]
+    total.papers[i] <- dim(journal.subsets[[i]])[1]
+  }
+  journal.data <- as.data.frame(cbind(as.character(levels(factor(data.frame$Source))), 
+                                      total.cites, 
+                                      total.years, 
+                                      agg.annual.cites, 
+                                      total.papers))
+  names(journal.data) <- c("journal", "total.cites", "total.years", "agg.annual.cites", "total.papers")
+  return(journal.data)
+}
+
 
 BuildJournalGraph <- function(data.frame.in, assoc.mat.in)
 {
@@ -435,7 +471,7 @@ DataFrameAddons <- function(data.frame.in, all.authors, unique.authors)
     num.authors.in.ctrs[i] <- length(which(author.subset$TotCtr >= 1))
     num.authors[i] <- dim(k)[1]
     avg.author.degree[i] <- mean(author.subset$degree)
-    avg.author.between[i] <- mean(author.subsetbetweenness)
+    avg.author.between[i] <- mean(author.subset$betweenness)
     avg.author.close[i] <- mean(author.subset$closeness)
     discipline.class[i] <- ifelse((math.author[i] == 1 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 0), "1-math",
                                   ifelse((math.author[i] == 0 & (ecoevo.author[i] == 1 | biol.author[i] == 1) & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 0), "1-bio", 
@@ -479,13 +515,14 @@ DataFrameAddons <- function(data.frame.in, all.authors, unique.authors)
 NetworkDiagnostics <- function(graph.in, seed.in)
 {
   set.seed(seed.in)
-  compos.out <- clusters(graph.in.graph)
+  compos.out <- clusters(graph.in)
   compos.out$csize[which.max(compos.out$csize[-1])] # get size of second-largest component
   isolated.out <- table(compos.out$csize == 1) # table isolated nodes
   avg.path.length.out <- average.path.length(graph.in)
   avg.degree.out <- mean(degree(graph.in))
   diam.graph.out <- diameter(graph.in)
-  out.unique.frame$degrees <- degree(author.graph)
+  out.unique.frame <- as.data.frame(matrix(NA, nrow = length(V(graph.in)), ncol = 1))
+  out.unique.frame$degrees <- degree(graph.in)
   out.unique.frame$closeness <- centralization.closeness(graph.in)$res
   out.unique.frame$betweenness <- centralization.betweenness(graph.in, directed = F)$res
   power.law.fit.out <- power.law.fit(out.unique.frame$degrees)
