@@ -206,12 +206,12 @@ GetAuthorAffils <- function(author.frame)
 {
   LastName <- FirstName <- AuthorID <- AllInits <- OneInit <- Dept <- Sch <- Univ <- rep(NA, dim(author.frame)[1])
   Math <- Ecol <- Epi <- Evol <- Stat <- Vet <- Ctr <- Biol <- Med <- rep(NA, dim(author.frame)[1])
-  for(i in 1:dim(author.full.frame)[1])
+  for(i in 1:dim(author.frame)[1])
   {
     # split names into first and last vectors: strip off last name; make all characters lower-case
-    LastName[i] <- tolower(strsplit(x = as.character((author.full.frame[i, 1])), split = ",", fixed = T)[[1]][1]) 
+    LastName[i] <- tolower(strsplit(x = as.character((author.frame[i, 1])), split = ",", fixed = T)[[1]][1]) 
     # strip off first name; remove leading whitespace with "trim"
-    FirstName[i] <- trim(strsplit(x = as.character((author.full.frame[i, 1])), split = ",", fixed = T)[[1]][2]) 
+    FirstName[i] <- trim(strsplit(x = as.character((author.frame[i, 1])), split = ",", fixed = T)[[1]][2]) 
     # refine FirstName so that it's only initials
     # remove periods
     FirstName[i] <- gsub("[.]", "", FirstName[i])[[1]] 
@@ -341,13 +341,13 @@ BuildCitationFrame <- function(data.frame.in, no.cite.papers)
 }
 
 # Paper association matrix
-BuildAssocMat <- function(data.frame.in, no.cite.papers, cite.frame)
+BuildAssocMat <- function(data.frame.in, cite.frame)
 {
   assoc.mat <- matrix(NA, nrow = dim(data.frame.in)[1], ncol = dim(data.frame.in)[1])
-  papers.with.cites <- c(1:dim(data.frame.in)[1])[-no.cite.papers]  
-  for(i in 1:length(papers.with.cites))
+  papers.with.cites <- c(1:dim(data.frame.in)[1]) 
+  for(i in papers.with.cites)
   {
-    for(j in 1:length(papers.with.cites))
+    for(j in papers.with.cites)
     {
       if(i == j)
       {
@@ -375,9 +375,9 @@ BuildAssocMat <- function(data.frame.in, no.cite.papers, cite.frame)
 BuildJournalGraph <- function(data.frame.in, assoc.mat.in)
 {
   journal1 <- journal2 <- matrix(NA, nrow = dim(data.frame.in)[1], ncol = dim(data.frame.in)[1])
-  for(i in dim(data.frame.in)[1])
+  for(i in 1:dim(data.frame.in)[1])
   {
-    for(j in dim(data.frame.in)[1])
+    for(j in 1:dim(data.frame.in)[1])
     {
       if(is.na(assoc.mat.in[i, j]) == F & (assoc.mat.in[i, j] == 1) == T)
       {
@@ -397,8 +397,104 @@ BuildJournalGraph <- function(data.frame.in, assoc.mat.in)
   journal.frame$journal1.vec <- factor(journal.frame$journal1.vec, levels = levels(factor(c(journal1.vec, journal2.vec))))
   journal.frame$journal2.vec <- factor(journal.frame$journal2.vec, levels = levels(factor(c(journal1.vec, journal2.vec))))
   journal.crosstab <- table(journal.frame$journal1.vec, journal.frame$journal2.vec) # 95 journals connected via edges
-  journal.graph <- graph.adjacency(journal.crosstab, mode = "directed", weighted = T)
   
+#  return(journal.crosstab)
+#}  
+  journal.graph.out <- graph.adjacency(journal.crosstab, mode = "directed", weighted = T)
   
-  return()
+  return(journal.graph.out)
+}
+
+#-------------------------------------------------------------------------------#
+#-- Functions to append author diversity info to original data.frame -----------#
+#-------------------------------------------------------------------------------#
+DataFrameAddons <- function(data.frame.in, all.authors, unique.authors)
+{
+  avg.author.degree <- avg.author.between <- avg.author.close <- rep(NA, dim(data.frame.in)[1])
+  author.diversity <- total.author.ctrs <- num.authors.in.ctrs <- rep(NA, dim(data.frame.in)[1])
+  num.authors <- math.author <- epi.author <- ecoevo.author <- biol.author <- rep(NA, dim(data.frame.in)[1])
+  med.author <- vet.author <- stat.author <- discipline.class <- rep(NA, dim(data.frame.in)[1])
+
+  for(i in 1:dim(data.frame.in)[1])
+  {
+    k <- subset(all.authors, as.numeric(as.character(Paper.Number)) == as.numeric(as.character(data.frame.in$Paper.Number))[i])
+
+    if(dim(k)[1] >= 1)
+    {
+    AuthorIDs <- trim(levels(factor(k$AuthorID)))
+    author.subset <- subset(unique.authors, AuthorID %in% AuthorIDs)
+    stat.author[i] <- ifelse(sum(author.subset$TotStat) >= 1, 1, 0)  
+    epi.author[i] <- ifelse(sum(author.subset$TotEpi) >= 1, 1, 0)  
+    ecoevo.author[i] <- ifelse((sum(author.subset$TotEcol) >= 1 |sum(author.subset$TotEvol) >= 1) , 1, 0) 
+    biol.author[i] <- ifelse(sum(author.subset$TotBiol) >= 1, 1, 0) 
+    med.author[i] <- ifelse(sum(author.subset$TotMed) >= 1, 1, 0) 
+    math.author[i] <- ifelse(sum(author.subset$TotMath) >= 1, 1, 0) 
+    vet.author[i] <- ifelse(sum(author.subset$TotVet) >= 1, 1, 0) 
+    author.diversity[i] <- stat.author[i] + ecoevo.author[i] + biol.author[i] + med.author[i] + math.author[i] + epi.author[i] + vet.author[i]   
+    total.author.ctrs[i] <- sum(author.subset$TotCtr)
+    num.authors.in.ctrs[i] <- length(which(author.subset$TotCtr >= 1))
+    num.authors[i] <- dim(k)[1]
+    avg.author.degree[i] <- mean(author.subset$degree)
+    avg.author.between[i] <- mean(author.subsetbetweenness)
+    avg.author.close[i] <- mean(author.subset$closeness)
+    discipline.class[i] <- ifelse((math.author[i] == 1 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 0), "1-math",
+                                  ifelse((math.author[i] == 0 & (ecoevo.author[i] == 1 | biol.author[i] == 1) & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 0), "1-bio", 
+                                  ifelse((math.author[i] == 0 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 1 & med.author[i] == 0 & vet.author[i] == 0), "1-stat",
+                                  ifelse((math.author[i] == 0 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 0 & med.author[i] == 1 & vet.author[i] == 0), "1-med",
+                                  ifelse((math.author[i] == 0 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 1), "1-vet",  
+                                  ifelse((math.author[i] == 1 & (ecoevo.author[i] == 1 | biol.author[i] == 1) & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 0), "2-mathbio",  
+                                  ifelse((math.author[i] == 1 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 1 & med.author[i] == 0 & vet.author[i] == 0), "2-mathstat",   
+                                  ifelse((math.author[i] == 1 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 0 & med.author[i] == 1 & vet.author[i] == 0), "2-mathmed", 
+                                  ifelse((math.author[i] == 1 & ecoevo.author[i] == 0 & biol.author[i] == 0 & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 1), "2-mathvet",
+                                  ifelse((math.author[i] == 1 & (ecoevo.author[i] == 0 | biol.author[i] == 1) & stat.author[i] == 1 & med.author[i] == 0 & vet.author[i] == 0), "3-mathbiostat",
+                                  ifelse((math.author[i] == 1 & (ecoevo.author[i] == 0 | biol.author[i] == 1) & stat.author[i] == 0 & med.author[i] == 1 & vet.author[i] == 0), "3-mathbiomed", 
+                                  ifelse((math.author[i] == 1 & (ecoevo.author[i] == 0 | biol.author[i] == 1) & stat.author[i] == 0 & med.author[i] == 0 & vet.author[i] == 1), "3-mathbiovet",
+                                  ifelse((math.author[i] == 1 & (ecoevo.author[i] == 0 & biol.author[i] == 0) & stat.author[i] == 1 & med.author[i] == 1 & vet.author[i] == 0), "3-mathstatmed",
+                                  ifelse((math.author[i] == 1 & (ecoevo.author[i] == 0 & biol.author[i] == 0) & stat.author[i] == 1 & med.author[i] == 0 & vet.author[i] == 1), "3-mathstatvet",
+                                  ifelse((math.author[i] == 1 & (ecoevo.author[i] == 0 & biol.author[i] == 0) & stat.author[i] == 0 & med.author[i] == 1 & vet.author[i] == 1), "3-mathmedvet",
+                                  ifelse((math.author[i] == 0 & (ecoevo.author[i] == 0 | biol.author[i] == 1) & stat.author[i] == 1 & med.author[i] == 1 & vet.author[i] == 0), "3-biostatmed",
+                                  ifelse((math.author[i] == 0 & (ecoevo.author[i] == 0 | biol.author[i] == 1) & stat.author[i] == 1 & med.author[i] == 0 & vet.author[i] == 1), "3-biostatvet", 
+                                  ifelse((math.author[i] == 0 & (ecoevo.author[i] == 0 | biol.author[i] == 1) & stat.author[i] == 0 & med.author[i] == 1 & vet.author[i] == 1), "3-biomedvet",  
+                                  ifelse((math.author[i] == 0 & (ecoevo.author[i] == 0 & biol.author[i] == 0) & stat.author[i] == 1 & med.author[i] == 1 & vet.author[i] == 1), "3-statmedvet", 
+                                  "FourDiscip")))))))))))))))))))
+    print(i)
+    } # END if
+   
+  } # i
+
+  data.frame.out <- as.data.frame(cbind(data.frame.in, avg.author.degree, avg.author.between, 
+                                        avg.author.close, author.diversity, total.author.ctrs, 
+                                        num.authors.in.ctrs, num.authors, math.author, epi.author, 
+                                        ecoevo.author, biol.author, med.author, vet.author, 
+                                        stat.author, discipline.class))
+  names(data.frame.out) <- c(names(data.frame.in), "avg.author.degree", "avg.author.between", 
+                             "avg.author.close", "author.diversity", "total.author.ctrs", 
+                             "num.authors.in.ctrs", "num.authors", "math.author", "epi.author", 
+                             "ecoevo.author", "biol.author", "med.author", "vet.author", 
+                             "stat.author", "discipline.class")
+  return(data.frame.out)
+}
+
+# Network diagnostic metrics function
+NetworkDiagnostics <- function(graph.in, seed.in)
+{
+  set.seed(seed.in)
+  compos.out <- clusters(graph.in.graph)
+  compos.out$csize[which.max(compos.out$csize[-1])] # get size of second-largest component
+  isolated.out <- table(compos.out$csize == 1) # table isolated nodes
+  avg.path.length.out <- average.path.length(graph.in)
+  avg.degree.out <- mean(degree(graph.in))
+  diam.graph.out <- diameter(graph.in)
+  out.unique.frame$degrees <- degree(author.graph)
+  out.unique.frame$closeness <- centralization.closeness(graph.in)$res
+  out.unique.frame$betweenness <- centralization.betweenness(graph.in, directed = F)$res
+  power.law.fit.out <- power.law.fit(out.unique.frame$degrees)
+  
+  return(list(compos.out = compos.out, 
+              isolated.out = isolated.out, 
+              avg.path.length.out = avg.path.length.out,
+              diam.graph.out = diam.graph.out,
+              out.unique.frame = out.unique.frame,
+              power.law.fit.out = power.law.fit.out
+              ))
 }
