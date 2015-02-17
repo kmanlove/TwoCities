@@ -535,3 +535,54 @@ NetworkDiagnostics <- function(graph.in, seed.in)
               power.law.fit.out = power.law.fit.out
               ))
 }
+
+#---------------------------------------------#
+#-- plotting functions -----------------------#
+#---------------------------------------------#
+AuthorFactorsByCitesPlot <- function(data.frame)
+{
+  par(mfrow = c(2, 2), mar = c(4, 4, 2, 2), oma = c(1, 1, 0, 0))
+  plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$author.diversity), 
+     xaxt = "n", yaxt = "n", 
+     xlab = "Author discipline diversity", 
+     ylab = "Annualized citation rate", 
+     col = "grey80")
+  axis(side = 1, las = 1, cex.axis = .7)
+  axis(side = 2, cex.axis = .7,
+     at = c(log(1), log(5), log(10), log(50)), 
+     labels = c("1", "5", "10", "50"))
+  plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$num.authors.in.ctrs), 
+     xaxt = "n", yaxt = "n", col = "grey80",
+     xlab = "Number of authors with center affiliations", 
+     ylab = "Annualized citation rate")
+  axis(side = 1, las = 1, cex.axis = .7)
+  axis(side = 2, cex.axis = .7,
+     at = c(log(1), log(5), log(10), log(50)), 
+     labels = c("1", "5", "10", "50"))
+  plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$num.authors), 
+     xaxt = "n", 
+     yaxt = "n", 
+     xlab = "Number of authors", 
+     ylab = "Annualized citation rate", 
+     col = "grey80")
+  axis(side = 1, las = 1, cex.axis = .7)
+  axis(side = 2, 
+     at = c(log(1), log(5), log(10), log(50)), 
+     labels = c("1", "5", "10", "50"), 
+     cex.axis = .7)
+  plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$discipline.class), 
+     xaxt = "n", 
+     yaxt = "n", 
+     xlab = "Discipline class", 
+     ylab = "Annualized citation rate", 
+     col = "grey80")
+  axis(side = 1, 
+     at = seq(1:length(levels(factor(data.frame$discipline.class)))), 
+     labels = levels(factor(data.frame$discipline.class)), 
+     las = 2, 
+     cex.axis = .7)
+  axis(side = 2, 
+     at = c(log(1), log(5), log(10), log(50)), 
+     labels = c("1", "5", "10", "50"), 
+     cex.axis = .7)
+}
