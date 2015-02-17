@@ -70,6 +70,22 @@ as.dendrogram.igraph.walktrap <- function (object, hang=-1, use.modularity=FALSE
 }
 
 #-------------------------------------------#
+#-- general data prep function -------------#
+#-------------------------------------------#
+DataPrep <- function(data.frame)
+{
+  no.cite.papers.in <- c(1, 494, 603, 858)
+  names(data.frame)[5] <- "Keep"
+  data.frame <- subset(data.frame, Keep == 1)
+  dim(data.frame) # 1632 papers
+  data.frame$Source <- factor(data.frame$Source)
+  data.frame$AnnualizedCitationRate <- data.frame$TimesCited / (2014 - data.frame$PubYear)
+  data.frame <- data.frame[-no.cite.papers.in, ] 
+  
+  return(data.frame)
+}
+
+#-------------------------------------------#
 #-- reader assignment function -------------#
 #-------------------------------------------#
 ReaderAssignmentFull <- function(number.readers, papers.per.reader, fixed.seed, number.communities, quantiles.to.use){
@@ -308,11 +324,11 @@ BuildAuthorGraph <- function(all.authors, unique.authors)
 #-------------------------------------------------------------------------------#
 #-- Functions to extract citation information and build cite info structures ---#
 #-------------------------------------------------------------------------------#
-BuildCitationFrame <- function(data.frame.in, no.cite.papers)
+BuildCitationFrame <- function(data.frame.in)
 {
   citation.list <- citation.frame <- citation.frame.small <- vector("list", dim(data.frame.in)[1])
   first.author <- pub.year <- rep(NA, dim(data.frame.in)[1])
-  papers.with.cites <- c(1:dim(data.frame.in)[1])[-c(no.cite.papers)]
+  papers.with.cites <- c(1:dim(data.frame.in)[1])
   for(i in papers.with.cites)
   {
     citation.list[[i]] <- strsplit(x = as.character(data.frame.in$CitedRefs)[i], split = ";")[[1]]
@@ -362,7 +378,7 @@ BuildAssocMat <- function(data.frame.in, cite.frame)
                                 1, 0)
       } # END else i != j
     } # j
-    print(i)
+#    print(i)
   } # i
   
   return(assoc.mat)
@@ -539,6 +555,43 @@ NetworkDiagnostics <- function(graph.in, seed.in)
 #---------------------------------------------#
 #-- plotting functions -----------------------#
 #---------------------------------------------#
+
+# histogram of distribution of papers among journals
+JournalFreqHist <- function(data.frame)
+{
+  length(levels(factor(data.frame$Source))) # 112 journals represented
+  table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
+  order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
+  # order command reorders levels so that they appear in descending frequency
+  par(mfrow = c(1, 1), las = 2, mar = c(15, 4, 1, 1))
+  plot(order.source, type = "h", xaxt = "n", ylab = "Frequency", ylim = c(0, 180), xlab = "")
+  axis(side = 1, at = c(1:112), labels = names(order.source), las = 2, cex.axis = .5)
+}
+
+# histogram of distribution of citations
+TimesCitedHists <- function(data.frame){
+  par(mfrow = c(2, 2), mex = 1, oma = c(2, 0, 0, 0))
+  hist(log(data.frame$TimesCited + 1), 
+     col = "grey80", main = "", xaxt = "n", 
+     xlab = "log(Total Citations + 1)")
+  axis(side = 1, 
+     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
+     labels = c("1", "5", "10", "50", "100", "500", "1000"))
+  hist(log(data.frame$AnnualizedCitationRate + 1), 
+     col = "grey80", 
+     xlab = "log(Annual Citations + 1)", main = "", xaxt = "n")
+  axis(side = 1, 
+     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
+     labels = c("1", "5", "10", "50", "100", "500", "1000"))
+  plot(log(data.frame$AnnualizedCitationRate + 1) ~ data.frame$PubYear, 
+     yaxt = "n", 
+     ylab = "log(Annual citations + 1)", 
+     xlab = "year of publication")
+  axis(side = 2, 
+     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
+     labels = c("1", "5", "10", "50", "100", "500", "1000"))
+}
+
 AuthorFactorsByCitesPlot <- function(data.frame)
 {
   par(mfrow = c(2, 2), mar = c(4, 4, 2, 2), oma = c(1, 1, 0, 0))
@@ -585,4 +638,41 @@ AuthorFactorsByCitesPlot <- function(data.frame)
      at = c(log(1), log(5), log(10), log(50)), 
      labels = c("1", "5", "10", "50"), 
      cex.axis = .7)
+}
+
+
+#-------------------------------------#
+#-- Analysis functions ---------------#
+#-------------------------------------#
+YearSpecJournalEdgeWeightRatio <- function(data.frame, in.year)
+{
+  data.year <- subset(data.frame, PubYear <= in.year)
+  cite.list.year <- BuildCitationFrame(data.frame.in = data.year)
+  assoc.mat.year <- BuildAssocMat(data.frame.in = data.year, 
+                                cite.frame = cite.list.year)
+  
+  journal.graph.year <- BuildJournalGraph(data.frame.in = data.year,
+                                        assoc.mat.in = assoc.mat.year)
+  
+  walktr.jo.year <- walktrap.community(journal.graph.year, steps = 4)
+  walktr.jo.year$membership
+  
+  # want ratio of references within to references between
+  # references within subgraphs of size >= 2
+  comms.to.include <- which(table(walktr.jo.year$membership) >= 3)
+  n.comms <- length(comms.to.include)
+  within.edges.vec <- rep(NA, n.comms)
+  member.list <- vector("list", n.comms)
+  for(j in 1:n.comms){
+    refs.within.comm1.year <- induced.subgraph(journal.graph.year, vids = which(walktr.jo.year$membership == comms.to.include[j]))
+    within.edges.vec[j] <- length(E(refs.within.comm1.year))
+    member.list[[j]] <- V(refs.within.comm1.year)$name
+  }
+  within.edges <- sum(within.edges.vec)
+  
+  # between-subgraph edges
+  large.comms.subgraph <- induced.subgraph(journal.graph.year, vids = which(walktr.jo.year$membership %in% comms.to.include))
+  between.edges <- length(E(large.comms.subgraph)) - within.edges
+  
+  return(list(n.comms = n.comms, between.edges = between.edges, within.edges = within.edges, member.list = member.list))
 }
