@@ -1,6 +1,7 @@
 # load required packages and source functions
 require(igraph)
 require(ape)
+require(lme4)
 source("./TwoCities_SourceFunctions.R")
 
 #------------------------------------------------------------------------------------------# 
@@ -30,12 +31,25 @@ axis(side = 1, at = c(1:112), labels = names(order.source), las = 2, cex.axis = 
 
 # histogram of distribution of citations
 par(mfrow = c(2, 2), mex = 1, oma = c(2, 0, 0, 0))
-hist(log(data.frame$TimesCited + 1), col = "grey80", main = "", xaxt = "n", xlab = "log(Total Citations + 1)")
-axis(side = 1, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
-hist(log(data.frame$AnnualizedCitationRate + 1), col = "grey80", xlab = "log(Annual Citations + 1)", main = "", xaxt = "n")
-axis(side = 1, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
-plot(log(data.frame$AnnualizedCitationRate + 1) ~ data.frame$PubYear, yaxt = "n", ylab = "log(Annual citations + 1)", xlab = "year of publication")
-axis(side = 2, at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), labels = c("1", "5", "10", "50", "100", "500", "1000"))
+hist(log(data.frame$TimesCited + 1), 
+     col = "grey80", main = "", xaxt = "n", 
+     xlab = "log(Total Citations + 1)")
+axis(side = 1, 
+     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
+     labels = c("1", "5", "10", "50", "100", "500", "1000"))
+hist(log(data.frame$AnnualizedCitationRate + 1), 
+     col = "grey80", 
+     xlab = "log(Annual Citations + 1)", main = "", xaxt = "n")
+axis(side = 1, 
+     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
+     labels = c("1", "5", "10", "50", "100", "500", "1000"))
+plot(log(data.frame$AnnualizedCitationRate + 1) ~ data.frame$PubYear, 
+     yaxt = "n", 
+     ylab = "log(Annual citations + 1)", 
+     xlab = "year of publication")
+axis(side = 2, 
+     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
+     labels = c("1", "5", "10", "50", "100", "500", "1000"))
 
 #-----------------------------------------#
 #-- Author network -----------------------#
@@ -48,7 +62,10 @@ author.diags <- NetworkDiagnostics(graph.in = author.graph, seed.in = 123)
 unique.authors.new <- as.data.frame(cbind(unique.authors, author.diags$out.unique.frame))
 
 par(mfrow = c(1, 1))
-plot(author.graph, margin = c(-.75, -.75, 0, 0), vertex.size = 1, vertex.label = NA, edge.arrow.size = .05)
+plot(author.graph, margin = c(-.75, -.75, 0, 0), 
+     vertex.size = 1, 
+     vertex.label = NA, 
+     edge.arrow.size = .05)
 
 # cut down to just giant component
 author.clusters <- clusters(author.graph)
@@ -66,7 +83,8 @@ giant.compo.au.walktr <- walktrap.community(giant.compo.aus, steps = 4)
 giant.compo.au.walktr$membership
 table(giant.compo.au.walktr$membership)
 # largest communities get unique colors; all communities <= 20 are "grey40"
-small.communities.au <- as.numeric(as.character(names(table(giant.compo.au.walktr$membership))[which(table(giant.compo.au.walktr$membership) <= 50)]))
+small.communities.au <- as.numeric(as.character(names(table(giant.compo.au.walktr$membership))
+                                                [which(table(giant.compo.au.walktr$membership) <= 50)]))
 au.vertex.ind <- factor(ifelse(giant.compo.au.walktr$membership %in% small.communities.au, 
                                "small", giant.compo.au.walktr$membership))
 color.vec.au <- c("red", "blue", "green", "yellow", "deeppink", "darkseagreen4", "purple", "grey70")
@@ -123,8 +141,10 @@ which(V(giant.compo.aus)$size >= 24)[1]
 #---------------------------------# 
 no.cite.papers.in = c(1, 494, 603, 858)
 
-cite.list <- BuildCitationFrame(data.frame.in = data.frame, no.cite.papers = no.cite.papers.in)
-assoc.mat <- BuildAssocMat(data.frame.in = data.frame[-no.cite.papers.in, -no.cite.papers.in], cite.frame = cite.list[-no.cite.papers.in])
+cite.list <- BuildCitationFrame(data.frame.in = data.frame, 
+                                no.cite.papers = no.cite.papers.in)
+assoc.mat <- BuildAssocMat(data.frame.in = data.frame[-no.cite.papers.in, -no.cite.papers.in], 
+                           cite.frame = cite.list[-no.cite.papers.in])
 full.citation.frame <- do.call("rbind", cite.list) # 69905 total refs
 
 paper.graph <- BuildPaperGraph(assoc.mat, data.frame[-no.cite.papers.in, ])
@@ -139,13 +159,17 @@ paper.hierarchy <- hierarchy(paper.graph)
 paper.optim.community <- optimal.community(paper.graph)
 
 # plot of giant component only
-giant.compo.papers <- delete.vertices(paper.graph, which(clusters(paper.graph)$membership != 5))
+giant.compo.papers <- delete.vertices(paper.graph, 
+                                      which(clusters(paper.graph)$membership != 5))
 giant.compo.papers.walktr <- walktrap.community(giant.compo.papers, steps = 4)
 giant.compo.papers.walktr$membership
 table(giant.compo.papers.walktr$membership)
 # largest communities get unique colors; all communities <= 10 are "grey40"
-small.communities <- as.numeric(as.character(names(table(giant.compo.papers.walktr$membership))[which(table(giant.compo.papers.walktr$membership) <= 20)]))
-paper.vertex.ind <- factor(ifelse(giant.compo.papers.walktr$membership %in% small.communities, "small", giant.compo.papers.walktr$membership))
+small.communities <- as.numeric(as.character(names(table(giant.compo.papers.walktr$membership))
+                                             [which(table(giant.compo.papers.walktr$membership) <= 20)]))
+paper.vertex.ind <- factor(ifelse(giant.compo.papers.walktr$membership %in% small.communities, 
+                                  "small", 
+                                  giant.compo.papers.walktr$membership))
 color.vec <- c("red", "blue", "green", "yellow", "deeppink", "darkseagreen4", "darkturquoise", "purple", "grey70")
 paper.vertex.colors <- color.vec[paper.vertex.ind]
 
@@ -188,19 +212,23 @@ plot(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)] ~
 text(journal.agg.annual.cites[order(journal.agg.annual.cites, decreasing = T)][1:20] ~ c(seq(1:20) + 0.25), 
      labels = paste("(", journal.total.papers[order(journal.agg.annual.cites, decreasing = T)][1:20], ")", sep = ""), 
      cex = .6)
-axis(side = 1, at = c(1:112), labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)]
-     , las = 2, cex.axis = .5)
+axis(side = 1, las = 2, cex.axis = .5,
+     at = c(1:112), 
+     labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)])
 
-journal.graph <- BuildJournalGraph(data.frame.in = data.frame[-no.cite.papers, -no.cite.papers], assoc.mat.in = assoc.mat)
+journal.graph <- BuildJournalGraph(data.frame.in = data.frame[-no.cite.papers, -no.cite.papers],
+                                   assoc.mat.in = assoc.mat)
 
 plot(journal.graph)
 # Qu: which journals are excluded?
-disconnected.journals <- levels(factor(data.frame$Source))[!(levels(factor(data.frame$Source)) %in% levels(journal.frame$journal1.vec))]
+disconnected.journals <- levels(factor(data.frame$Source))
+[!(levels(factor(data.frame$Source)) %in% levels(journal.frame$journal1.vec))]
 V(journal.graph)$size <- table(data.frame$Source)[!(names(table(data.frame$Source)) %in% disconnected.journals)]
 
 # description of journal graph
 journal.compos <- clusters(journal.graph, mode = "weak")
-journal.compos$csize[which.max(journal.compos$csize[-which.max(journal.compos$csize)])] # get size of second-largest component
+# get size of second-largest component
+journal.compos$csize[which.max(journal.compos$csize[-which.max(journal.compos$csize)])] 
 table(journal.compos$csize == 1) # table isolated nodes
 avg.path.length.journal <- average.path.length(journal.graph)
 avg.degree.journal <- mean(degree(journal.graph, mode = "in"))
@@ -221,13 +249,17 @@ walktr.jo <- walktrap.community(journal.graph.small, steps = 4)
 walktr.jo$membership
 table(walktr.jo$membership)
 # largest communities get unique colors; all communities <= 10 are "grey40"
-small.communities.jo <- as.numeric(as.character(names(table(walktr.jo$membership))[which(table(walktr.jo$membership) <= 3)]))
+small.communities.jo <- as.numeric(as.character(names(table(walktr.jo$membership))
+                                                [which(table(walktr.jo$membership) <= 3)]))
 
 
-jo.vertex.ind <- factor(ifelse(walktr.jo$membership %in% small.communities.jo, "small", walktr.jo$membership))
+jo.vertex.ind <- factor(ifelse(walktr.jo$membership %in% small.communities.jo, 
+                               "small", 
+                               walktr.jo$membership))
 color.vec.jo <- c("deeppink", "blue", "gold1", "grey70")
 jo.vertex.colors <- color.vec.jo[jo.vertex.ind]
-V(journal.graph.small)$size <- ifelse(is.finite(V(journal.graph.small)$size) == T, V(journal.graph.small)$size, 0)
+V(journal.graph.small)$size <- ifelse(is.finite(V(journal.graph.small)$size) == T, 
+                                      V(journal.graph.small)$size, 0)
 
 jo.comm.top10 <- vector("list", length(levels(jo.vertex.ind)))
 for(i in 1:length(levels(jo.vertex.ind))){
@@ -238,27 +270,56 @@ for(i in 1:length(levels(jo.vertex.ind))){
 fixed.jo.layout <- layout.fruchterman.reingold(journal.graph.small)
 margin.dims = c(0, 0, 0, 0)
 
-#svg("~/work/Kezia/Research/EcologyPapers/TwoCities/Plots/JournalsGC_06Dec2014.svg")
-#fixed.paper.layout <- layout.fruchterman.reingold(giant.compo.papers)
-plot(journal.graph.small, margin = margin.dims, vertex.frame.color = "black", vertex.label = "",  vertex.label.cex = .5, vertex.label.color = "black", layout = fixed.jo.layout, edge.width = 0.25, edge.color = "grey50", edge.arrow.size = 0, vertex.label = "", vertex.size = (V(journal.graph.small)$size + 1) / 10 + 2, vertex.color = jo.vertex.colors)
-#dev.off()
+plot(journal.graph.small, 
+     margin = margin.dims, 
+     vertex.frame.color = "black", 
+     vertex.label = "",  
+     vertex.label.cex = .5, 
+     vertex.label.color = "black", 
+     layout = fixed.jo.layout, 
+     edge.width = 0.25, 
+     edge.color = "grey50", 
+     edge.arrow.size = 0, 
+     vertex.label = "", 
+     vertex.size = (V(journal.graph.small)$size + 1) / 10 + 2, 
+     vertex.color = jo.vertex.colors)
 
 jo.dendro <- as.dendrogram(walktr.jo)
-in.colbar <- c("forestgreen", "navyblue", "red", "black", "green", "seagreen4", "yellow", "turquoise", "purple", "gold", "magenta", "grey40", "orange", "deeppink", "blue")
+in.colbar <- c("forestgreen", 
+               "navyblue", 
+               "red", 
+               "black", 
+               "green", 
+               "seagreen4", 
+               "yellow", 
+               "turquoise", 
+               "purple", 
+               "gold", 
+               "magenta", 
+               "grey40", 
+               "orange", 
+               "deeppink", 
+               "blue")
 par(mar = c(0, 0, 0, 0), cex.axis = .7)
-dendPlot(walktr.jo, mode = "phylo", label.offset = .5, cex = .8, colbar = in.colbar, direction = "downwards")
-
+dendPlot(walktr.jo, 
+         mode = "phylo", 
+         label.offset = .5, 
+         cex = .8, 
+         colbar = in.colbar, 
+         direction = "downwards")
 
 # extract journal community membership for each paper
 journal.community.membership <- data.frame(cbind(jo.vertex.ind, V(journal.graph.small)$name))
 names(journal.community.membership) <- c("Community", "JournalName")
 data.frame$JournalCommunity <- rep(NA, dim(data.frame)[1])
 for(i in 1:dim(data.frame)[1]){
-  journal.source <- subset(journal.community.membership, as.character(JournalName) == as.character(data.frame$Source[i]))
+  journal.source <- subset(journal.community.membership, 
+                           as.character(JournalName) == as.character(data.frame$Source[i]))
   data.frame$JournalCommunity[i] <- as.character(journal.source$Community[1])
 }
 
-#write.csv(data.frame$JournalCommunity, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalCommunityVector_16Dec2014.csv")
+#write.csv(data.frame$JournalCommunity, 
+#   "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/JournalCommunityVector_16Dec2014.csv")
 
 #---------------------------------------------#
 #-- Stratified sampling set-up ---------------#
@@ -283,11 +344,37 @@ levels(factor(comm2$Source))
 levels(factor(comm3$Source))
 
 # assume 10 readers; 3 papers / reader
-Comm1ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 20, fixed.seed = 123, community.to.use = 1, quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
-Comm2ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 20, fixed.seed = 123, community.to.use = 2, quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
-Comm3ReaderList <- ReaderAssignmentSpecificGrp(data.frame, number.readers = 4, papers.per.reader = 20, fixed.seed = 123, community.to.use = 3, quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
+Comm1ReaderList <- ReaderAssignmentSpecificGrp(data.frame, 
+                                               number.readers = 4, 
+                                               papers.per.reader = 20, 
+                                               fixed.seed = 123, 
+                                               community.to.use = 1, 
+                                               quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
+Comm2ReaderList <- ReaderAssignmentSpecificGrp(data.frame, 
+                                               number.readers = 4, 
+                                               papers.per.reader = 20, 
+                                               fixed.seed = 123, 
+                                               community.to.use = 2, 
+                                               quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
+Comm3ReaderList <- ReaderAssignmentSpecificGrp(data.frame, 
+                                               number.readers = 4, 
+                                               papers.per.reader = 20, 
+                                               fixed.seed = 123, 
+                                               community.to.use = 3, 
+                                               quantiles.to.use = c(0.33, 0.34, 0.66, 0.67))
 
-readers <- c("Bande", "Craft", "Cross", "Huyvaert", "Joseph", "Manlove", "Miller", "Nol", "OBrien", "Patyk", "Walker", "Walsch")
+readers <- c("Bande", 
+             "Craft", 
+             "Cross", 
+             "Huyvaert", 
+             "Joseph", 
+             "Manlove", 
+             "Miller", 
+             "Nol", 
+             "OBrien", 
+             "Patyk", 
+             "Walker", 
+             "Walsch")
 comm1.reader.frame <- do.call("rbind", Comm1ReaderList)
 comm1.reader.frame$Reader <- rep(readers[1:4], each = 18)
 comm2.reader.frame <- do.call("rbind", Comm2ReaderList)
@@ -295,14 +382,18 @@ comm2.reader.frame$Reader <- rep(readers[5:8], each = 18)
 comm3.reader.frame <- do.call("rbind", Comm3ReaderList)
 comm3.reader.frame$Reader <- rep(readers[9:12], each = 18)
 
-full.reader.assignments <- as.data.frame(rbind(comm1.reader.frame, comm2.reader.frame, comm3.reader.frame))
-# write.csv(full.reader.assignments, "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/FullReadingAssignments_11Jan2015.csv")
+full.reader.assignments <- as.data.frame(rbind(comm1.reader.frame, 
+                                               comm2.reader.frame, 
+                                               comm3.reader.frame))
+# write.csv(full.reader.assignments, 
+#  "~/work/Kezia/Research/EcologyPapers/TwoCities/Data/FullReadingAssignments_11Jan2015.csv")
 
 #-------------------------------------------------------------------------------------#
 #-- regression of avg. author closeness and betweenness on annualized citation rate --#
 #-------------------------------------------------------------------------------------#
 # to get paper's authorship diversity, 
-# 1) extract authors from author.unique.frame by looping over paper numbers in author full frame, extracting authorID, and subsetting on authorID in author.unique.frame
+# 1) extract authors from author.unique.frame by looping over paper numbers in author 
+#    full frame, extracting authorID, and subsetting on authorID in author.unique.frame
 # 2) sum (math, stat, ecol, evol, epi, med) across all paper authors
 data.frame.full <- DataFrameAddons(data.frame.in = data.frame, all.authors, unique.authors)
 
@@ -352,19 +443,32 @@ axis(side = 2,
      labels = c("1", "5", "10", "50"), 
      cex.axis = .7)
 
-papers.with.citrate <- subset(data.frame, is.na(AnnualizedCitationRate) == F & is.infinite(AnnualizedCitationRate) == F)
-close.fit <- lm(log(AnnualizedCitationRate[-1] + 1) ~ avg.author.close[-1], data = papers.with.citrate)
-between.fit <- lm(log(AnnualizedCitationRate[-1] + 1) ~ avg.author.between[-1], data = papers.with.citrate)
-degree.fit <- lm(log(AnnualizedCitationRate[-1] + 1) ~ avg.author.degree[-1], data = papers.with.citrate)
-cor(subset(papers.with.citrate[-1, ], select = c(avg.author.degree, avg.author.between, avg.author.close)))
-require(lme4)
-saturated.fit <- lmer(log(AnnualizedCitationRate + 1) ~ log(avg.author.between + 1) + (1 | Source), data = papers.with.citrate[-1, ])
+papers.with.citrate <- subset(data.frame, is.na(AnnualizedCitationRate) == F & 
+                                is.infinite(AnnualizedCitationRate) == F)
+close.fit <- lm(log(AnnualizedCitationRate[-1] + 1) ~ avg.author.close[-1], 
+                data = papers.with.citrate)
+between.fit <- lm(log(AnnualizedCitationRate[-1] + 1) ~ avg.author.between[-1], 
+                  data = papers.with.citrate)
+degree.fit <- lm(log(AnnualizedCitationRate[-1] + 1) ~ avg.author.degree[-1], 
+                 data = papers.with.citrate)
+cor(subset(papers.with.citrate[-1, ], 
+           select = c(avg.author.degree, avg.author.between, avg.author.close)))
+saturated.fit <- lmer(log(AnnualizedCitationRate + 1) ~ log(avg.author.between + 1) + 
+                        (1 | Source), data = papers.with.citrate[-1, ])
 
 # extract papers with very high residuals in saturated model
 papers.with.citrate$sat.resids[2:1455] <- residuals(saturated.fit)
 sat.quantiles <- quantile(papers.with.citrate$sat.resids[-1], c(0.025, 0.975))
-outliers <- which(papers.with.citrate$sat.resids <= sat.quantiles[1] | papers.with.citrate$sat.resids >= sat.quantiles[2])
+outliers <- which(papers.with.citrate$sat.resids <= sat.quantiles[1] | 
+                    papers.with.citrate$sat.resids >= sat.quantiles[2])
 outlier.papers <- papers.with.citrate[outliers, ]
 
-outlier.view.sub <- subset(outlier.papers, select = c("Authors", "Title", "Paper.Number", "Source", "AnnualizedCitationRate", "avg.author.close", "avg.author.between", "sat.resids"))
+outlier.view.sub <- subset(outlier.papers, select = c("Authors", 
+                                                      "Title", 
+                                                      "Paper.Number", 
+                                                      "Source", 
+                                                      "AnnualizedCitationRate", 
+                                                      "avg.author.close", 
+                                                      "avg.author.between", 
+                                                      "sat.resids"))
 outlier.view.sub[21:40, ]
