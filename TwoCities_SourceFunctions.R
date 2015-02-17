@@ -344,18 +344,18 @@ BuildCitationFrame <- function(data.frame.in, no.cite.papers)
 BuildAssocMat <- function(data.frame.in, no.cite.papers, cite.frame)
 {
   assoc.mat <- matrix(NA, nrow = dim(data.frame.in)[1], ncol = dim(data.frame.in)[1])
-  papers.with.cites <- c(1:dim(data.frame.in)[1])[-c(no.cite.papers)]  
-  for(i in papers.with.cites)
+  papers.with.cites <- c(1:dim(data.frame.in)[1])[-no.cite.papers]  
+  for(i in 1:length(papers.with.cites))
   {
-    for(j in papers.with.cites)
+    for(j in 1:length(papers.with.cites))
     {
       if(i == j)
       {
       assoc.mat[i, j] <- NA
       } # END if i == j
       else{
-      assoc.mat[i, j] <- ifelse(((cite.frame[[i]][1, 1] %in% cite.frame[[j]][ ,9]) | 
-                                   (paste(cite.frame[[i]][1 ,2], " ", cite.frame[[i]][1, 3]) %in% paste(cite.frame[[j]][ , 4], " ", cite.frame[[j]][, 5]))), 
+      assoc.mat[i, j] <- ifelse(((cite.frame[[papers.with.cites[i]]][1, 1] %in% cite.frame[[papers.with.cites[j]]][ ,9]) | 
+                                   (paste(cite.frame[[papers.with.cites[i]]][1 ,2], " ", cite.frame[[papers.with.cites[i]]][1, 3]) %in% paste(cite.frame[[papers.with.cites[j]]][ , 4], " ", cite.frame[[papers.with.cites[j]]][, 5]))), 
                                 1, 0)
       } # END else i != j
     } # j
@@ -365,52 +365,24 @@ BuildAssocMat <- function(data.frame.in, no.cite.papers, cite.frame)
   return(assoc.mat)
 }
 
-#-------------------------------#
-#-- Build network functions ----#
-#-------------------------------#
-BuildAssocMat <- function(cite.list)
-{
-  assoc.mat <- matrix(NA, nrow = length(cite.list), ncol = length(cite.list))
-  for(i in 1:length(cite.list))
-  {
-    if(is.null(cite.list[[i]]) == T)
-    {
-      assoc.mat
-    } # END if is.null (cite.list[[i]])
-    for(j in 1:length(cite.list))
-    {
-      if(i == j)
-      {
-        assoc.mat[i, j] <- NA
-      } # END if i == j
-      else
-        {
-        assoc.mat[i, j] <- ifelse(((cite.list[[i]][1, 1] %in% cite.list[[j]][ , 9]) 
-                                  | (paste(cite.list[[i]][1 ,2], " ", cite.list[[i]][1, 3]) %in% paste(cite.list[[j]][ , 4], " ", cite.list[[j]][, 5]))), 
-                                  1, 
-                                  0
-                                  )
-      } # END else (i neq j)
-    } # j
-    print(i)
-  } # i
-  return(assoc.mat)
-}
+#-------------------------------------------------------------------------------#
+#-- Functions to extract journal information and build journal info structures -#
+#-------------------------------------------------------------------------------#
 
 #citation.list.in <- citation.list[papers.with.cites]
 #assoc.test <- BuildAssocMat(citation.list.in)
 
-BuildJournalGraph <- function(data.frame.in)
+BuildJournalGraph <- function(data.frame.in, assoc.mat.in)
 {
   journal1 <- journal2 <- matrix(NA, nrow = dim(data.frame.in)[1], ncol = dim(data.frame.in)[1])
   for(i in dim(data.frame.in)[1])
   {
     for(j in dim(data.frame.in)[1])
     {
-      if(is.na(assoc.mat[i, j]) == F & (assoc.mat[i, j] == 1) == T)
+      if(is.na(assoc.mat.in[i, j]) == F & (assoc.mat.in[i, j] == 1) == T)
       {
-        journal1[i, j] <- as.character(data.frame[i, ]$Source)
-        journal2[i, j] <- as.character(data.frame[j, ]$Source)
+        journal1[i, j] <- as.character(data.frame.in[i, ]$Source)
+        journal2[i, j] <- as.character(data.frame.in[j, ]$Source)
       } else
         {
         journal1[i, j] <- NA
@@ -427,9 +399,6 @@ BuildJournalGraph <- function(data.frame.in)
   journal.crosstab <- table(journal.frame$journal1.vec, journal.frame$journal2.vec) # 95 journals connected via edges
   journal.graph <- graph.adjacency(journal.crosstab, mode = "directed", weighted = T)
   
-  # Qu: which journals are excluded?
-  disconnected.journals <- levels(factor(data.frame$Source))[!(levels(factor(data.frame$Source)) %in% levels(journal.frame$journal1.vec))]
-  V(journal.graph)$size <- table(data.frame$Source)[!(names(table(data.frame$Source)) %in% disconnected.journals)]
   
   return()
 }
