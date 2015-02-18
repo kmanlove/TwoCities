@@ -655,17 +655,18 @@ YearSpecJournalEdgeWeightRatio <- function(data.frame, in.year)
                                         assoc.mat.in = assoc.mat.year)
   
   walktr.jo.year <- walktrap.community(journal.graph.year, steps = 4)
-  walktr.jo.year$membership
+#  walktr.jo.year$membership
   
   # want ratio of references within to references between
   # references within subgraphs of size >= 2
   comms.to.include <- which(table(walktr.jo.year$membership) >= 3)
   n.comms <- length(comms.to.include)
-  within.edges.vec <- rep(NA, n.comms)
+  within.edges.vec <- between.edges.vec <- rep(NA, n.comms)
   member.list <- vector("list", n.comms)
   for(j in 1:n.comms){
     refs.within.comm1.year <- induced.subgraph(journal.graph.year, vids = which(walktr.jo.year$membership == comms.to.include[j]))
     within.edges.vec[j] <- length(E(refs.within.comm1.year))
+    between.edges.vec[j] <- degree(journal.graph.year)[which(walktr.jo.year$membership == comms.to.include[j])] - within.edges.vec[j]
     member.list[[j]] <- V(refs.within.comm1.year)$name
   }
   within.edges <- sum(within.edges.vec)
@@ -674,5 +675,5 @@ YearSpecJournalEdgeWeightRatio <- function(data.frame, in.year)
   large.comms.subgraph <- induced.subgraph(journal.graph.year, vids = which(walktr.jo.year$membership %in% comms.to.include))
   between.edges <- length(E(large.comms.subgraph)) - within.edges
   
-  return(list(n.comms = n.comms, between.edges = between.edges, within.edges = within.edges, member.list = member.list))
+  return(list(n.comms = n.comms, between.edges = between.edges, within.edges = within.edges, member.list = member.list, within.edges.vec = within.edges.vec, between.edges.vec = between.edges.vec))
 }
