@@ -14,46 +14,13 @@ source("./TwoCities_SourceFunctions.R")
 #-- Preliminary description of papers ------#
 #-------------------------------------------#
 data.frame <- read.csv("~/work/Kezia/Research/EcologyPapers/TwoCities/Data/IncludedPaperBank_CirculatedV1.csv", header = T, sep = "\t")
-names(data.frame)[5] <- "Keep"
-data.frame <- subset(data.frame, Keep == 1)
-dim(data.frame) # 1632 papers
-data.frame$Source <- factor(data.frame$Source)
-data.frame$AnnualizedCitationRate <- data.frame$TimesCited / (2014 - data.frame$PubYear)
+data.frame <- DataPrep(data.frame)
 
-# histogram of distribution of papers among journals
-length(levels(factor(data.frame$Source))) # 112 journals represented
-table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
-order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
-# order command reorders levels so that they appear in descending frequency
-par(mfrow = c(1, 1), las = 2, mar = c(15, 4, 1, 1))
-plot(order.source, type = "h", xaxt = "n", ylab = "Frequency", ylim = c(0, 180), xlab = "")
-axis(side = 1, at = c(1:112), labels = names(order.source), las = 2, cex.axis = .5)
+JournalFreqHist(data.frame)
+TimesCitedHists(data.frame)
 
-# histogram of distribution of citations
-par(mfrow = c(2, 2), mex = 1, oma = c(2, 0, 0, 0))
-hist(log(data.frame$TimesCited + 1), 
-     col = "grey80", main = "", xaxt = "n", 
-     xlab = "log(Total Citations + 1)")
-axis(side = 1, 
-     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
-     labels = c("1", "5", "10", "50", "100", "500", "1000"))
-hist(log(data.frame$AnnualizedCitationRate + 1), 
-     col = "grey80", 
-     xlab = "log(Annual Citations + 1)", main = "", xaxt = "n")
-axis(side = 1, 
-     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
-     labels = c("1", "5", "10", "50", "100", "500", "1000"))
-plot(log(data.frame$AnnualizedCitationRate + 1) ~ data.frame$PubYear, 
-     yaxt = "n", 
-     ylab = "log(Annual citations + 1)", 
-     xlab = "year of publication")
-axis(side = 2, 
-     at = c(log(1), log(5), log(10), log(50), log(100), log(500), log(1000)), 
-     labels = c("1", "5", "10", "50", "100", "500", "1000"))
+#-- prep all data --#
 
-#-----------------------------------------#
-#-- Author network -----------------------#
-#-----------------------------------------#
 all.authors <- BuildAuthorFrame(data.frame.in = data.frame)
 affils.test <- GetAuthorAffils(author.frame = all.authors)
 unique.authors <- AuthorMerge(author.frame = affils.test)
@@ -61,6 +28,20 @@ author.graph <- BuildAuthorGraph(all.authors = affils.test, unique.authors)
 author.diags <- NetworkDiagnostics(graph.in = author.graph, seed.in = 123)
 unique.authors.new <- as.data.frame(cbind(unique.authors, author.diags$out.unique.frame))
 
+cite.list <- BuildCitationFrame(data.frame.in = data.frame)
+assoc.mat <- BuildAssocMat(data.frame.in = data.frame, 
+                           cite.frame = cite.list)
+full.citation.frame <- do.call("rbind", cite.list) # 69905 total refs
+paper.graph <- BuildPaperGraph(assoc.mat, data.frame)
+paper.diags <- NetworkDiagnostics(graph.in = paper.graph, seed.in = 123)
+
+journal.data <- ExtractJournalData(data.frame)
+journal.graph <- BuildJournalGraph(data.frame.in = data.frame,
+                                   assoc.mat.in = assoc.mat)
+
+#-----------------------------------------#
+#-- Author network -----------------------#
+#-----------------------------------------#
 par(mfrow = c(1, 1))
 plot(author.graph, margin = c(-.75, -.75, 0, 0), 
      vertex.size = 1, 
@@ -139,17 +120,6 @@ which(V(giant.compo.aus)$size >= 24)[1]
 #---------------------------------#
 #-- citation network -------------#
 #---------------------------------# 
-no.cite.papers.in = c(1, 494, 603, 858)
-
-cite.list <- BuildCitationFrame(data.frame.in = data.frame, 
-                                no.cite.papers = no.cite.papers.in)
-assoc.mat <- BuildAssocMat(data.frame.in = data.frame[-no.cite.papers.in, -no.cite.papers.in], 
-                           cite.frame = cite.list[-no.cite.papers.in])
-full.citation.frame <- do.call("rbind", cite.list) # 69905 total refs
-
-paper.graph <- BuildPaperGraph(assoc.mat, data.frame[-no.cite.papers.in, ])
-paper.diags <- NetworkDiagnostics(graph.in = paper.graph, seed.in = 123)
-
 # plots for paper graph
 par(mfrow = c(1, 1))
 plot(paper.graph, vertex.size = 1, vertex.label = NA, edge.arrow.size = .05)
@@ -197,8 +167,6 @@ plot(giant.compo.papers,
 #-----------------------------------------#
 #-- Journal network ----------------------#
 #-----------------------------------------#
-# aggregated annualized citations of database papers by journal
-journal.data <- ExtractJournalData(data.frame)
 
 order.source <- table(data.frame$Source)[order(table(data.frame$Source), decreasing = T)]
 # order command reorders levels so that they appear in descending frequency
@@ -216,8 +184,6 @@ axis(side = 1, las = 2, cex.axis = .5,
      at = c(1:112), 
      labels = levels(data.frame$Source)[order(journal.agg.annual.cites, decreasing = T)])
 
-journal.graph <- BuildJournalGraph(data.frame.in = data.frame[-no.cite.papers, -no.cite.papers],
-                                   assoc.mat.in = assoc.mat)
 
 plot(journal.graph)
 # Qu: which journals are excluded?
@@ -225,15 +191,15 @@ disconnected.journals <- levels(factor(data.frame$Source))
 [!(levels(factor(data.frame$Source)) %in% levels(journal.frame$journal1.vec))]
 V(journal.graph)$size <- table(data.frame$Source)[!(names(table(data.frame$Source)) %in% disconnected.journals)]
 
-# description of journal graph
-journal.compos <- clusters(journal.graph, mode = "weak")
-# get size of second-largest component
-journal.compos$csize[which.max(journal.compos$csize[-which.max(journal.compos$csize)])] 
-table(journal.compos$csize == 1) # table isolated nodes
-avg.path.length.journal <- average.path.length(journal.graph)
-avg.degree.journal <- mean(degree(journal.graph, mode = "in"))
-diam.journal <- diameter(journal.graph)
-power.law.fit.journal <- power.law.fit(degree(journal.graph, mode = "all"))
+# # description of journal graph
+# journal.compos <- clusters(journal.graph, mode = "weak")
+# # get size of second-largest component
+# journal.compos$csize[which.max(journal.compos$csize[-which.max(journal.compos$csize)])] 
+# table(journal.compos$csize == 1) # table isolated nodes
+# avg.path.length.journal <- average.path.length(journal.graph)
+# avg.degree.journal <- mean(degree(journal.graph, mode = "in"))
+# diam.journal <- diameter(journal.graph)
+# power.law.fit.journal <- power.law.fit(degree(journal.graph, mode = "all"))
 
 journal.graph.small <- delete.vertices(journal.graph, which(degree(journal.graph) < 1) - 1)
 V(journal.graph.small)$name
@@ -395,53 +361,10 @@ full.reader.assignments <- as.data.frame(rbind(comm1.reader.frame,
 # 1) extract authors from author.unique.frame by looping over paper numbers in author 
 #    full frame, extracting authorID, and subsetting on authorID in author.unique.frame
 # 2) sum (math, stat, ecol, evol, epi, med) across all paper authors
-data.frame.full <- DataFrameAddons(data.frame.in = data.frame, all.authors, unique.authors)
+data.frame.full <- DataFrameAddons(data.frame.in = data.frame, all.authors = affils.test, unique.authors)
 
 # PLOTS: author discipline diversity and Number center affiliations by annualized citation rate
-par(mfrow = c(2, 2), mar = c(4, 4, 2, 2), oma = c(1, 1, 0, 0))
-plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$author.diversity), 
-     xaxt = "n", yaxt = "n", 
-     xlab = "Author discipline diversity", 
-     ylab = "Annualized citation rate", 
-     col = "grey80")
-axis(side = 1, las = 1, cex.axis = .7)
-axis(side = 2, cex.axis = .7,
-     at = c(log(1), log(5), log(10), log(50)), 
-     labels = c("1", "5", "10", "50"))
-plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$num.authors.in.ctrs), 
-     xaxt = "n", yaxt = "n", col = "grey80",
-     xlab = "Number of authors with center affiliations", 
-     ylab = "Annualized citation rate")
-axis(side = 1, las = 1, cex.axis = .7)
-axis(side = 2, cex.axis = .7,
-     at = c(log(1), log(5), log(10), log(50)), 
-     labels = c("1", "5", "10", "50"))
-plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$num.authors), 
-     xaxt = "n", 
-     yaxt = "n", 
-     xlab = "Number of authors", 
-     ylab = "Annualized citation rate", 
-     col = "grey80")
-axis(side = 1, las = 1, cex.axis = .7)
-axis(side = 2, 
-     at = c(log(1), log(5), log(10), log(50)), 
-     labels = c("1", "5", "10", "50"), 
-     cex.axis = .7)
-plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$discipline.class), 
-     xaxt = "n", 
-     yaxt = "n", 
-     xlab = "Discipline class", 
-     ylab = "Annualized citation rate", 
-     col = "grey80")
-axis(side = 1, 
-     at = seq(1:length(levels(factor(data.frame$discipline.class)))), 
-     labels = levels(factor(data.frame$discipline.class)), 
-     las = 2, 
-     cex.axis = .7)
-axis(side = 2, 
-     at = c(log(1), log(5), log(10), log(50)), 
-     labels = c("1", "5", "10", "50"), 
-     cex.axis = .7)
+AuthorFactorsByCitesPlot(data.frame = data.frame.full)
 
 papers.with.citrate <- subset(data.frame, is.na(AnnualizedCitationRate) == F & 
                                 is.infinite(AnnualizedCitationRate) == F)
@@ -472,3 +395,62 @@ outlier.view.sub <- subset(outlier.papers, select = c("Authors",
                                                       "avg.author.between", 
                                                       "sat.resids"))
 outlier.view.sub[21:40, ]
+
+#--------------------------------------------#
+#-- regenerate networks through time --------#
+#--------------------------------------------#
+
+# between-subgraph edges
+large.comms.subgraph <- induced.subgraph(journal.graph.95, vids = which(walktr.jo.95$membership %in% comms.to.include))
+between.edges <- length(E(large.comms.subgraph)) - within.edges
+
+within.edges <- between.edges <- n.comms <- rep(NA, length(1995:2014))
+test.year <- comm.members <- within.edges.vec <- between.edges.vec <- vector("list", length(1995:2014))
+for(i in ((1995:2014) - 1994))
+{
+  test.year[[i]] <- YearSpecJournalEdgeWeightRatio(data.frame = data.frame, in.year = i + 1994)
+  within.edges[i] <- test.year[[i]]$within.edges
+  between.edges[i] <- test.year[[i]]$between.edges
+  n.comms[i] <- test.year[[i]]$n.comms
+  comm.members[[i]] <- test.year[[i]]$member.list
+  within.edges.vec[[i]] <- test.year[[i]]$within.edges.vec
+  between.edges.vec[[i]] <- test.year[[i]]$between.edges.vec
+  print(i)
+}
+
+matrix.compare <- vector("list", 20)
+eco.old <- biol.old <- vet.old <- ento.old <- rep(NA, 20)
+eco.prop.over <- biol.prop.over <- ento.prop.over <- vet.prop.over <- rep(NA, 20)
+for(i in 1:20)
+{
+  comm.members[[i]]
+  matrix.compare[[i]] <- matrix(NA, nrow = 4, ncol = n.comms[i])
+  for(j in 1:n.comms[i])
+  {
+    matrix.compare[[i]][1, j] <- length(which(comm.members[[i]][[j]] %in% comm.members[[20]][[1]]))
+    matrix.compare[[i]][2, j] <- length(which(comm.members[[i]][[j]] %in% comm.members[[20]][[2]]))
+    matrix.compare[[i]][3, j] <- length(which(comm.members[[i]][[j]] %in% comm.members[[20]][[3]]))
+    matrix.compare[[i]][4, j] <- length(which(comm.members[[i]][[j]] %in% comm.members[[20]][[4]]))
+  }
+  eco.old[i] <- which.max(matrix.compare[[i]][1, ])
+  biol.old[i] <- which.max(matrix.compare[[i]][2, ])
+  vet.old[i] <- which.max(matrix.compare[[i]][3, ])
+  ento.old[i] <- which.max(matrix.compare[[i]][4, ])
+  eco.prop.over[i] <- max(matrix.compare[[i]][1, ]) / sum(matrix.compare[[i]][1, ])
+  biol.prop.over[i] <- max(matrix.compare[[i]][2, ]) / sum(matrix.compare[[i]][2, ])
+  vet.prop.over[i] <- max(matrix.compare[[i]][3, ]) / sum(matrix.compare[[i]][3, ])
+  ento.prop.over[i] <- max(matrix.compare[[i]][4, ]) / sum(matrix.compare[[i]][4, ])
+}
+
+within.edges <- within.edges[1995:2014]
+between.edges <- between.edges[1995:2014]
+
+par(mfrow = c(2, 2), oma = c(3, 2, 3, 3), mar = c(4, 5, 2, 2))
+plot(n.comms ~ c(1995:2014), xlim = c(1994, 2015), ylim = c(0, 6), xlab = "year", ylab = "# communities detected", pch = 16)
+plot(within.edges / (within.edges + between.edges) ~ c(1995:2014), xlim = c(1994, 2015), ylim = c(0, 1), xlab = "year", ylab = "% within-community references", pch = 16)
+plot(eco.prop.over ~ c(1995:2014), col = "red", pch = 16, ylim = c(0, 1), xlab = "", ylab = "Proportion overlapping with \n 2014 community membership")
+points(biol.prop.over ~ c(1995:2014), col = "blue", pch = 16)
+points(vet.prop.over ~ c(1995:2014), col = "green", pch = 16)
+points(ento.prop.over ~ c(1995:2014), col = "black")
+leg.text <- c("Ecol", "GenBiol/Epi", "Vet", "Ento")
+legend("bottomright", leg.text, pch = c(16, 16, 16, 1), col = c("red", "blue", "green", "black"), bty = "n")
