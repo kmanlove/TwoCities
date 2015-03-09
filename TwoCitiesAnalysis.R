@@ -418,9 +418,12 @@ for(i in ((1995:2014) - 1994))
   print(i)
 }
 
+save(test.year, file = "NetworksByYear_17Feb2015.R")
+
 matrix.compare <- vector("list", 20)
 eco.old <- biol.old <- vet.old <- ento.old <- rep(NA, 20)
 eco.prop.over <- biol.prop.over <- ento.prop.over <- vet.prop.over <- rep(NA, 20)
+eco.within.prop <- biol.within.prop <- vet.within.prop <- ento.within.prop <- rep(NA, 20)
 for(i in 1:20)
 {
   comm.members[[i]]
@@ -440,6 +443,11 @@ for(i in 1:20)
   biol.prop.over[i] <- max(matrix.compare[[i]][2, ]) / sum(matrix.compare[[i]][2, ])
   vet.prop.over[i] <- max(matrix.compare[[i]][3, ]) / sum(matrix.compare[[i]][3, ])
   ento.prop.over[i] <- max(matrix.compare[[i]][4, ]) / sum(matrix.compare[[i]][4, ])
+
+  eco.within.prop[i] <- within.edges.vec[[i]][which.max(matrix.compare[[i]][1, ])] / (within.edges.vec[[i]][which.max(matrix.compare[[i]][1, ])] + between.edges.vec[[i]][which.max(matrix.compare[[i]][1, ])])
+  biol.within.prop[i] <- within.edges.vec[[i]][which.max(matrix.compare[[i]][2, ])] / (within.edges.vec[[i]][which.max(matrix.compare[[i]][2, ])] + between.edges.vec[[i]][which.max(matrix.compare[[i]][2, ])])
+  vet.within.prop[i] <- within.edges.vec[[i]][which.max(matrix.compare[[i]][3, ])] / (within.edges.vec[[i]][which.max(matrix.compare[[i]][3, ])] + between.edges.vec[[i]][which.max(matrix.compare[[i]][3, ])])
+  ento.within.prop[i] <- within.edges.vec[[i]][which.max(matrix.compare[[i]][4, ])] / (within.edges.vec[[i]][which.max(matrix.compare[[i]][4, ])] + between.edges.vec[[i]][which.max(matrix.compare[[i]][4, ])])
 }
 
 within.edges <- within.edges[1995:2014]
@@ -454,3 +462,91 @@ points(vet.prop.over ~ c(1995:2014), col = "green", pch = 16)
 points(ento.prop.over ~ c(1995:2014), col = "black")
 leg.text <- c("Ecol", "GenBiol/Epi", "Vet", "Ento")
 legend("bottomright", leg.text, pch = c(16, 16, 16, 1), col = c("red", "blue", "green", "black"), bty = "n")
+plot(eco.within.prop ~ c(1995:2014), col = "red", pch = 16, ylim = c(0, 1), xlab = "", ylab = "Proportion of total edges \n within community")
+points(biol.within.prop ~ c(1995:2014), col = "blue", pch = 16)
+points(vet.within.prop ~ c(1995:2014), col = "green", pch = 16)
+points(ento.within.prop ~ c(1995:2014), col = "black")
+leg.text <- c("Ecol", "GenBiol/Epi", "Vet", "Ento")
+legend("topright", leg.text, pch = c(16, 16, 16, 1), col = c("red", "blue", "green", "black"), bty = "n")
+
+
+#----------------------------------#
+#-- author networks through time --#
+#----------------------------------#
+# build storage
+unique.authors.new.yr <- vector("list", 18)
+for(i in 1:18)
+{
+  data.frame.yr <- subset(data.frame, PubYear %in% (1994 + i):(1994 + i + 2))
+  data.frame.yr$Authors <- factor(data.frame.yr$Authors)
+  all.authors.yr <- BuildAuthorFrame(data.frame.in = data.frame.yr)
+  affils.test.yr.old <- GetAuthorAffils(author.frame = all.authors.yr)
+  unique.authors.yr <- AuthorMerge(author.frame = affils.test.yr.old)
+  author.graph.yr <- BuildAuthorGraph(all.authors = affils.test.yr.old, unique.authors.yr)
+  author.diags.yr <- NetworkDiagnostics(graph.in = author.graph.yr, seed.in = 123)
+  unique.authors.new.yr[[i]] <- as.data.frame(cbind(unique.authors.yr, author.diags.yr$out.unique.frame))
+  year.between <- betweenness(author.graph.yr, normalized = T)
+  author.names <- V(author.graph.yr)$name
+  for(j in 1:dim(unique.authors.new.yr[[i]])[1]){
+     unique.authors.new.yr[[i]]$betweenness[j] <- year.between[which(as.character(unique.authors.new.yr[[i]]$AuthorID) == as.character(author.names[j]))]
+  } #j
+  print(i)
+} #i
+
+names(unique.authors.new.yr[[1]])
+mean.between.discip <- matrix(NA, nrow = 18, ncol = 8)
+med.between.discip <- matrix(NA, nrow = 18, ncol = 8)
+for(i in 1:18){
+  # math
+  math <- subset(unique.authors.new.yr[[i]], TotMath == 1)
+  mean.between.discip[i, 1] <- mean(math$betweenness)
+  med.between.discip[i, 1] <- median(math$betweenness)
+  # stat
+  stat <- subset(unique.authors.new.yr[[i]], TotStat == 1)
+  mean.between.discip[i, 2] <- mean(stat$betweenness)
+  med.between.discip[i, 2] <- median(stat$betweenness)
+  # Ecol
+  ecol <- subset(unique.authors.new.yr[[i]], TotEcol == 1)
+  mean.between.discip[i, 3] <- mean(ecol$betweenness)
+  med.between.discip[i, 3] <- median(ecol$betweenness)
+  # Evol
+  evol <- subset(unique.authors.new.yr[[i]], TotEvol == 1)
+  mean.between.discip[i, 4] <- mean(evol$betweenness)
+  med.between.discip[i, 4] <- median(evol$betweenness)
+  # Epi
+  epi <- subset(unique.authors.new.yr[[i]], TotEpi == 1)
+  mean.between.discip[i, 5] <- mean(epi$betweenness)
+  med.between.discip[i, 5] <- median(epi$betweenness)
+  # Vet
+  vet <- subset(unique.authors.new.yr[[i]], TotVet == 1)
+  mean.between.discip[i, 6] <- mean(vet$betweenness)
+  med.between.discip[i, 6] <- median(vet$betweenness)
+  # Med
+  med <- subset(unique.authors.new.yr[[i]], TotMed == 1)
+  mean.between.discip[i, 7] <- mean(med$betweenness)
+  med.between.discip[i, 7] <- median(med$betweenness)
+  # Biol
+  biol <- subset(unique.authors.new.yr[[i]], TotBiol == 1)
+  mean.between.discip[i, 8] <- mean(biol$betweenness)
+  med.between.discip[i, 8] <- median(biol$betweenness)
+} #i
+
+par(mfrow = c(1, 1), oma = c(4, 4, 4, 4), mar = c(4, 4, 4, 4))
+plot(mean.between.discip[, 1] ~ c(1996:2013), col = "red", type = "l", ylim = c(0, .003), xlab = "", ylab = "mean logged betweenness")
+lines(mean.between.discip[, 2] ~ c(1996:2013), col = "blue")
+lines(mean.between.discip[, 3] ~ c(1996:2013), col = "green")
+lines(mean.between.discip[, 4] ~ c(1996:2013), col = "orange")
+lines(mean.between.discip[, 5] ~ c(1996:2013), col = "purple")
+lines(mean.between.discip[, 6] ~ c(1996:2013), col = "turquoise")
+lines(mean.between.discip[, 7] ~ c(1996:2013), col = "hotpink")
+lines(mean.between.discip[, 8] ~ c(1996:2013), col = "darkblue")
+
+par(mfrow = c(4, 4))
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotMath)
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotBiol)
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotEvol)
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotEpi)
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotVet)
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotEcol)
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotMed)
+boxplot(unique.authors.new.yr[[2]]$betweenness ~ unique.authors.new.yr[[2]]$TotStat)
