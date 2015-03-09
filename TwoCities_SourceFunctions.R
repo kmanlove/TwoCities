@@ -297,7 +297,8 @@ BuildAuthorGraph <- function(all.authors, unique.authors)
   authors <- trim(levels(factor(unique.authors$AuthorID)))
   length(authors) # 4309 authors
   author.mat <- matrix(0, nrow = length(authors), ncol = length(authors))
-  for(i in 1:length(authors)){
+  for(i in 1:length(authors))
+  {
     author.refs <- subset(all.authors, AuthorID == authors[i])
     paper.numbers <- as.numeric(as.character(unique(author.refs$Paper.Number)))
     coauthors <- unique(as.data.frame((subset(all.authors, 
@@ -308,9 +309,6 @@ BuildAuthorGraph <- function(all.authors, unique.authors)
     addvals <- which(authors %in% names(table(coauthors$AuthorID)))
     author.mat[i, addvals] <- author.edgeweights
     print(i)
-    V(author.graph)$size <- unique.authors$TotPapers
-    V(author.graph)$name <- authors
-    
   } # i
   
   diag(author.mat) <- rep(0, dim(author.mat)[1])
@@ -318,6 +316,12 @@ BuildAuthorGraph <- function(all.authors, unique.authors)
   
   # description of author graph
   author.graph <- graph.adjacency(author.mat, mode = "undirected")
+  
+  for(i in 1:length(authors)){
+    V(author.graph)$size <- unique.authors$TotPapers
+    V(author.graph)$name <- authors
+  } # i
+
   return(author.graph)
 }
 
@@ -666,7 +670,7 @@ YearSpecJournalEdgeWeightRatio <- function(data.frame, in.year)
   for(j in 1:n.comms){
     refs.within.comm1.year <- induced.subgraph(journal.graph.year, vids = which(walktr.jo.year$membership == comms.to.include[j]))
     within.edges.vec[j] <- length(E(refs.within.comm1.year))
-    between.edges.vec[j] <- degree(journal.graph.year)[which(walktr.jo.year$membership == comms.to.include[j])] - within.edges.vec[j]
+    between.edges.vec[j] <- sum(degree(journal.graph.year)[which(walktr.jo.year$membership == comms.to.include[j])]) - within.edges.vec[j]
     member.list[[j]] <- V(refs.within.comm1.year)$name
   }
   within.edges <- sum(within.edges.vec)
