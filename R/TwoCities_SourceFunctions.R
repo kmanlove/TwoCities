@@ -416,7 +416,7 @@ BuildPaperGraph <- function(assoc.mat, data.frame)
 
 ExtractJournalData <- function(data.frame)
 {
-  total.cites <- total.papers <- rep(NA, length(levels(data.frame$Source)))
+  total.cites <- total.papers <- jo.comm <- rep(NA, length(levels(data.frame$Source)))
   total.years <- agg.annual.cites <- rep(NA, length(levels(data.frame$Source)))
   journal.subsets <- vector("list", length(levels(data.frame$Source)))
   for(i in 1:length(levels(data.frame$Source))){ 
@@ -426,13 +426,15 @@ ExtractJournalData <- function(data.frame)
     total.years[i] <- sum(2014 - journal.subsets[[i]]$PubYear)
     agg.annual.cites[i] <- total.cites[i] / total.years[i]
     total.papers[i] <- dim(journal.subsets[[i]])[1]
+    jo.comm[i] <- as.numeric(as.character(journal.subsets[[i]]$Journal.Community[1]))
   }
   journal.data <- as.data.frame(cbind(as.character(levels(factor(data.frame$Source))), 
                                       total.cites, 
                                       total.years, 
                                       agg.annual.cites, 
-                                      total.papers))
-  names(journal.data) <- c("journal", "total.cites", "total.years", "agg.annual.cites", "total.papers")
+                                      total.papers,
+                                      jo.comm))
+  names(journal.data) <- c("journal", "total.cites", "total.years", "agg.annual.cites", "total.papers", "jo.community")
   return(journal.data)
 }
 
@@ -612,6 +614,7 @@ AuthorFactorsByCitesPlot <- function(data.frame)
      xaxt = "n", yaxt = "n", 
      xlab = "Author discipline diversity", 
      ylab = "Annualized citation rate", 
+     ylim = c(0, log(60)),
      col = "grey80")
   axis(side = 1, las = 1, cex.axis = .7)
   axis(side = 2, cex.axis = .7,
@@ -619,6 +622,7 @@ AuthorFactorsByCitesPlot <- function(data.frame)
      labels = c("1", "5", "10", "50"))
   plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$num.authors.in.ctrs), 
      xaxt = "n", yaxt = "n", col = "grey80",
+     ylim = c(0, log(60)),
      xlab = "Number of authors with center affiliations", 
      ylab = "Annualized citation rate")
   axis(side = 1, las = 1, cex.axis = .7)
@@ -628,6 +632,7 @@ AuthorFactorsByCitesPlot <- function(data.frame)
   plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$num.authors), 
      xaxt = "n", 
      yaxt = "n", 
+     ylim = c(0, log(60)),
      xlab = "Number of authors", 
      ylab = "Annualized citation rate", 
      col = "grey80")
@@ -639,7 +644,8 @@ AuthorFactorsByCitesPlot <- function(data.frame)
   plot(log(data.frame$AnnualizedCitationRate + 1) ~ as.factor(data.frame$discipline.class), 
      xaxt = "n", 
      yaxt = "n", 
-     xlab = "Discipline class", 
+     xlab = "", 
+     ylim = c(0, log(60)),
      ylab = "Annualized citation rate", 
      col = "grey80")
   axis(side = 1, 
@@ -653,6 +659,43 @@ AuthorFactorsByCitesPlot <- function(data.frame)
      cex.axis = .7)
 }
 
+AuthorDiversByCitesComparPlot <- function(comm1.dat, comm2.dat, comm3.dat)
+{
+  par(mfrow = c(1, 3), mar = c(4, 4, 2, 2), oma = c(1, 1, 0, 0))
+  plot(log(comm1.dat$AnnualizedCitationRate + 1) ~ as.factor(comm1.dat$author.diversity), 
+       xaxt = "n", yaxt = "n", 
+       xlab = "Author discipline diversity", 
+       ylab = "Annualized citation rate", 
+       ylim = c(0, log(60)),
+       col = "grey80")
+  axis(side = 1, las = 1, cex.axis = .7)
+  axis(side = 2, cex.axis = .7,
+       at = c(log(1), log(5), log(10), log(50)), 
+       labels = c("1", "5", "10", "50"))
+  text(x = 3, y = log(50), "Ecology")
+  plot(log(comm2.dat$AnnualizedCitationRate + 1) ~ as.factor(comm2.dat$author.diversity), 
+       xaxt = "n", yaxt = "n", 
+       xlab = "Author discipline diversity", 
+       ylab = "Annualized citation rate", 
+       ylim = c(0, log(60)),
+       col = "grey80")
+  axis(side = 1, las = 1, cex.axis = .7)
+  axis(side = 2, cex.axis = .7,
+       at = c(log(1), log(5), log(10), log(50)), 
+       labels = c("1", "5", "10", "50"))
+  text(x = 3, y = log(50), "General Biol")
+  plot(log(comm3.dat$AnnualizedCitationRate + 1) ~ as.factor(comm3.dat$author.diversity), 
+       xaxt = "n", yaxt = "n", 
+       xlab = "Author discipline diversity", 
+       ylab = "Annualized citation rate", 
+       ylim = c(0, log(60)),
+       col = "grey80")
+  text(x = 3, y = log(50), "Veterinary")
+  axis(side = 1, las = 1, cex.axis = .7)
+  axis(side = 2, cex.axis = .7,
+       at = c(log(1), log(5), log(10), log(50)), 
+       labels = c("1", "5", "10", "50"))
+}
 
 #-------------------------------------#
 #-- Analysis functions ---------------#
