@@ -1,145 +1,145 @@
-as.dendrogram.igraph.walktrap <- function (object, hang=-1, use.modularity=FALSE, ...){
-  .memberDend <- function(x) {
-    r <- attr(x,"x.member")
-    if(is.null(r)) {
-      r <- attr(x,"members")
-      if(is.null(r)) r <- 1:1
-    }
-    r
-  }
-      stopifnot(nrow(object$merges)> 0)
-      storage.mode(object$merges) <- "integer"
-      object$merges <- object$merges + 1L
-      if (is.null(object$labels))
-          object$labels <- 1:(nrow(object$merges)+1)-1
-      z <- list()
-      if (!use.modularity || is.null(object$modularity)) {
-          object$height <- 1:nrow(object$merges)
-        } else {
-            object$height <- object$modularity[-1]
-            object$height <- cumsum(object$height - min(object$height))
-          }
-      nMerge <- length(oHgt <- object$height)
-      if (nMerge != nrow(object$merges))
-          stop("'merge' and 'height' do not fit!")
-      hMax <- oHgt[nMerge]
-      one <- 1:1;
-      two <- 2:2 # integer!
-      leafs <- nrow(object$merges)+1
-      for (k in 1:nMerge) {
-          x <- object$merges[k, ]# no sort() anymore!
-          if (any(neg <- x < leafs+1))
-              h0 <- if (hang < 0) 0 else max(0, oHgt[k] - hang * hMax)
-          if (all(neg)) {                  # two leaves
-              zk <- as.list(x)
-              attr(zk, "members") <- two
-              attr(zk, "midpoint") <- 0.5 # mean( c(0,1) )
-              objlabels <- object$labels[x]
-              attr(zk[[1]], "label") <- objlabels[1]
-              attr(zk[[2]], "label") <- objlabels[2]
-              attr(zk[[1]], "members") <- attr(zk[[2]], "members") <- one
-              attr(zk[[1]], "height") <- attr(zk[[2]], "height") <- h0
-              attr(zk[[1]], "leaf") <- attr(zk[[2]], "leaf") <- TRUE
-            }
-          else if (any(neg)) {            # one leaf, one node
-              X <- as.character(x)
-              ## Originally had "x <- sort(..) above => leaf always left, x[1];
-                ## don't want to assume this
-                isL <- x[1] < leafs+1 ## is leaf left?
-              zk <- if(isL) list(x[1], z[[X[2]]])
-                else    list(z[[X[1]]], x[2])
-              attr(zk, "members") <- attr(z[[X[1 + isL]]], "members") + one
-              attr(zk, "midpoint") <- (igraph:::.memberDend(zk[[1]]) + attr(z[[X[1 + isL]]], "midpoint"))/2
-              attr(zk[[2 - isL]], "members") <- one
-              attr(zk[[2 - isL]], "height") <- h0
-              attr(zk[[2 - isL]], "label") <- object$labels[x[2 - isL]]
-              attr(zk[[2 - isL]], "leaf") <- TRUE
-              }
-          else {                        # two nodes
-              x <- as.character(x)
-              zk <- list(z[[x[1]]], z[[x[2]]])
-              attr(zk, "members") <- attr(z[[x[1]]], "members") + attr(z[[x[2]]], "members")
-              attr(zk, "midpoint") <- (attr(z[[x[1]]], "members") + attr(z[[x[1]]], "midpoint") + attr(z[[x[2]]], "midpoint"))/2
-          }
-          attr(zk, "height") <- oHgt[k]
-          z[[k <- as.character(k+leafs)]] <- zk
-        }
-      z <- z[[k]]
-      class(z) <- "dendrogram"
-      z
-}
+# as.dendrogram.igraph.walktrap <- function (object, hang=-1, use.modularity=FALSE, ...){
+#   .memberDend <- function(x) {
+#     r <- attr(x,"x.member")
+#     if(is.null(r)) {
+#       r <- attr(x,"members")
+#       if(is.null(r)) r <- 1:1
+#     }
+#     r
+#   }
+#       stopifnot(nrow(object$merges)> 0)
+#       storage.mode(object$merges) <- "integer"
+#       object$merges <- object$merges + 1L
+#       if (is.null(object$labels))
+#           object$labels <- 1:(nrow(object$merges)+1)-1
+#       z <- list()
+#       if (!use.modularity || is.null(object$modularity)) {
+#           object$height <- 1:nrow(object$merges)
+#         } else {
+#             object$height <- object$modularity[-1]
+#             object$height <- cumsum(object$height - min(object$height))
+#           }
+#       nMerge <- length(oHgt <- object$height)
+#       if (nMerge != nrow(object$merges))
+#           stop("'merge' and 'height' do not fit!")
+#       hMax <- oHgt[nMerge]
+#       one <- 1:1;
+#       two <- 2:2 # integer!
+#       leafs <- nrow(object$merges)+1
+#       for (k in 1:nMerge) {
+#           x <- object$merges[k, ]# no sort() anymore!
+#           if (any(neg <- x < leafs+1))
+#               h0 <- if (hang < 0) 0 else max(0, oHgt[k] - hang * hMax)
+#           if (all(neg)) {                  # two leaves
+#               zk <- as.list(x)
+#               attr(zk, "members") <- two
+#               attr(zk, "midpoint") <- 0.5 # mean( c(0,1) )
+#               objlabels <- object$labels[x]
+#               attr(zk[[1]], "label") <- objlabels[1]
+#               attr(zk[[2]], "label") <- objlabels[2]
+#               attr(zk[[1]], "members") <- attr(zk[[2]], "members") <- one
+#               attr(zk[[1]], "height") <- attr(zk[[2]], "height") <- h0
+#               attr(zk[[1]], "leaf") <- attr(zk[[2]], "leaf") <- TRUE
+#             }
+#           else if (any(neg)) {            # one leaf, one node
+#               X <- as.character(x)
+#               ## Originally had "x <- sort(..) above => leaf always left, x[1];
+#                 ## don't want to assume this
+#                 isL <- x[1] < leafs+1 ## is leaf left?
+#               zk <- if(isL) list(x[1], z[[X[2]]])
+#                 else    list(z[[X[1]]], x[2])
+#               attr(zk, "members") <- attr(z[[X[1 + isL]]], "members") + one
+#               attr(zk, "midpoint") <- (igraph:::.memberDend(zk[[1]]) + attr(z[[X[1 + isL]]], "midpoint"))/2
+#               attr(zk[[2 - isL]], "members") <- one
+#               attr(zk[[2 - isL]], "height") <- h0
+#               attr(zk[[2 - isL]], "label") <- object$labels[x[2 - isL]]
+#               attr(zk[[2 - isL]], "leaf") <- TRUE
+#               }
+#           else {                        # two nodes
+#               x <- as.character(x)
+#               zk <- list(z[[x[1]]], z[[x[2]]])
+#               attr(zk, "members") <- attr(z[[x[1]]], "members") + attr(z[[x[2]]], "members")
+#               attr(zk, "midpoint") <- (attr(z[[x[1]]], "members") + attr(z[[x[1]]], "midpoint") + attr(z[[x[2]]], "midpoint"))/2
+#           }
+#           attr(zk, "height") <- oHgt[k]
+#           z[[k <- as.character(k+leafs)]] <- zk
+#         }
+#       z <- z[[k]]
+#       class(z) <- "dendrogram"
+#       z
+# }
 
 #-------------------------------------------#
 #-- general data prep function -------------#
 #-------------------------------------------#
-DataPrep <- function(data.frame)
-{
-  no.cite.papers.in <- c(1, 494, 603, 858)
-  names(data.frame)[5] <- "Keep"
-  data.frame <- subset(data.frame, Keep == 1)
-  dim(data.frame) # 1632 papers
-  data.frame$Source <- factor(data.frame$Source)
-  data.frame$AnnualizedCitationRate <- data.frame$TimesCited / (2014 - data.frame$PubYear)
-  data.frame <- data.frame[-no.cite.papers.in, ] 
-  
-  return(data.frame)
-}
+# DataPrep <- function(data.frame)
+# {
+#   no.cite.papers.in <- c(1, 494, 603, 858)
+#   names(data.frame)[5] <- "Keep"
+#   data.frame <- subset(data.frame, Keep == 1)
+#   dim(data.frame) # 1632 papers
+#   data.frame$Source <- factor(data.frame$Source)
+#   data.frame$AnnualizedCitationRate <- data.frame$TimesCited / (2014 - data.frame$PubYear)
+#   data.frame <- data.frame[-no.cite.papers.in, ] 
+#   
+#   return(data.frame)
+# }
 
 #-------------------------------------------#
 #-- reader assignment function -------------#
 #-------------------------------------------#
-ReaderAssignmentFull <- function(number.readers, papers.per.reader, fixed.seed, 
-                                 number.communities, quantiles.to.use){
-  comm.list <- vector("list", number.communities)
-  comm.quantiles <- matrix(NA, nrow = number.communities, ncol = length(quantiled.to.use))
-  for(i in 1:number.communities){
-    comm[[i]] <- subset(data.frame, JournalCommunity == i)
-    comm.quantiles[i, ] <- quantile(comm[[i]]$AnnualizedCitationRate, quantiles.to.use, na.rm = T)
-  } 
-}
+# ReaderAssignmentFull <- function(number.readers, papers.per.reader, fixed.seed, 
+#                                  number.communities, quantiles.to.use){
+#   comm.list <- vector("list", number.communities)
+#   comm.quantiles <- matrix(NA, nrow = number.communities, ncol = length(quantiled.to.use))
+#   for(i in 1:number.communities){
+#     comm[[i]] <- subset(data.frame, JournalCommunity == i)
+#     comm.quantiles[i, ] <- quantile(comm[[i]]$AnnualizedCitationRate, quantiles.to.use, na.rm = T)
+#   } 
+# }
 
-ReaderAssignmentSpecificGrp <- function(data.frame, number.readers, papers.per.reader, 
-                                        fixed.seed, community.to.use, quantiles.to.use){
-  sampling.pattern <- cbind(c(1, 5, 9), c(2, 6, 7), c(3, 4, 8))
-  comm <- subset(data.frame, JournalCommunity == community.to.use)
-  comm.quantiles <- quantile(comm$AnnualizedCitationRate, quantiles.to.use, na.rm = T)
-  # sample uniformly over quantiles -- take to 25, middle 25, bottom 25 papers in each...
-  sampled.papers <- comm[c(
-         sample(x = which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate <= comm.quantiles[1]), 
-                min(number.readers * 2, length(which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate <= comm.quantiles[1]))), 
-                rep = F), 
-         sample(x = which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), 
-                min(number.readers * 2, length(which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), 
-                rep = F),
-         sample(x = which(comm$PubYear <= 2002  & comm$AnnualizedCitationRate >= comm.quantiles[4]), 
-                min(number.readers * 2, length(which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate >= comm.quantiles[4]))), 
-                rep = F),
-         sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate <= comm.quantiles[1]), 
-                min(number.readers * 2, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate <= comm.quantiles[1]))), 
-                rep = F), 
-         sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), 
-                min(number.readers * 2, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), 
-                rep = F),
-         sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[4]), 
-                min(number.readers * 2, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[4]))), 
-                rep = F),
-         sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate <= comm.quantiles[1]), 
-                min(number.readers * 2, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate <= comm.quantiles[1]))), 
-                rep = F), 
-         sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), 
-                min(number.readers * 2, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), 
-                rep = F),
-         sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[4]), 
-                min(number.readers * 2, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[4]))), 
-                rep = F)
-         ), ]
- reader.paper.list <- reader.paper.list.reduced <- vector("list", number.readers)
- for(i in 1:number.readers){
-   reader.paper.list[[i]] <- sampled.papers[which(1:dim(sampled.papers)[1] %% number.readers == (i - 1)),]
-#   reader.paper.list.reduced[[i]] <- reader.paper.list[[i]][sampling.pattern[, ((i %% number.readers) %% 3) + 1], ]
- } 
- return(reader.paper.list)
-}
+# ReaderAssignmentSpecificGrp <- function(data.frame, number.readers, papers.per.reader, 
+#                                         fixed.seed, community.to.use, quantiles.to.use){
+#   sampling.pattern <- cbind(c(1, 5, 9), c(2, 6, 7), c(3, 4, 8))
+#   comm <- subset(data.frame, JournalCommunity == community.to.use)
+#   comm.quantiles <- quantile(comm$AnnualizedCitationRate, quantiles.to.use, na.rm = T)
+#   # sample uniformly over quantiles -- take to 25, middle 25, bottom 25 papers in each...
+#   sampled.papers <- comm[c(
+#          sample(x = which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate <= comm.quantiles[1]), 
+#                 min(number.readers * 2, length(which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate <= comm.quantiles[1]))), 
+#                 rep = F), 
+#          sample(x = which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), 
+#                 min(number.readers * 2, length(which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), 
+#                 rep = F),
+#          sample(x = which(comm$PubYear <= 2002  & comm$AnnualizedCitationRate >= comm.quantiles[4]), 
+#                 min(number.readers * 2, length(which(comm$PubYear <= 2002 & comm$AnnualizedCitationRate >= comm.quantiles[4]))), 
+#                 rep = F),
+#          sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate <= comm.quantiles[1]), 
+#                 min(number.readers * 2, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate <= comm.quantiles[1]))), 
+#                 rep = F), 
+#          sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), 
+#                 min(number.readers * 2, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), 
+#                 rep = F),
+#          sample(x = which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[4]), 
+#                 min(number.readers * 2, length(which(comm$PubYear %in% seq(2003, 2007) & comm$AnnualizedCitationRate >= comm.quantiles[4]))), 
+#                 rep = F),
+#          sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate <= comm.quantiles[1]), 
+#                 min(number.readers * 2, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate <= comm.quantiles[1]))), 
+#                 rep = F), 
+#          sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]), 
+#                 min(number.readers * 2, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[2] & comm$AnnualizedCitationRate <= comm.quantiles[3]))), 
+#                 rep = F),
+#          sample(x = which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[4]), 
+#                 min(number.readers * 2, length(which(comm$PubYear %in% seq(2008, 2012) & comm$AnnualizedCitationRate >= comm.quantiles[4]))), 
+#                 rep = F)
+#          ), ]
+#  reader.paper.list <- reader.paper.list.reduced <- vector("list", number.readers)
+#  for(i in 1:number.readers){
+#    reader.paper.list[[i]] <- sampled.papers[which(1:dim(sampled.papers)[1] %% number.readers == (i - 1)),]
+# #   reader.paper.list.reduced[[i]] <- reader.paper.list[[i]][sampling.pattern[, ((i %% number.readers) %% 3) + 1], ]
+#  } 
+#  return(reader.paper.list)
+# }
 
 trim <- trim.leading <- function (x) gsub("^\\s+|\\s+$", "", x) # trim cuts leading whitespace off of any character string
 
@@ -148,150 +148,150 @@ trim <- trim.leading <- function (x) gsub("^\\s+|\\s+$", "", x) # trim cuts lead
 #-------------------------------------------------------------------------------#
 
 # Build author dataframe
-BuildAuthorFrame <- function(data.frame.in)
-{
-  institution.list <- institution.list2 <- author.institutions <- vector("list", length = dim(data.frame.in)[1])
-  author.institutions.expanded <- author.list <- author.lastonly <- vector("list", length = dim(data.frame.in)[1])
-  author.list.out <- First <- Last <- author.frame <- data.list.au <- vector("list", length = dim(data.frame.in)[1])
-
-  # loop to build author data list
-  for(i in 2:dim(data.frame.in)[1])
-  { # loop starts at 2 because paper 1 is authored by Anonymous and there's no info in the author fields
-    # extract authors from data.frame$Author field
-    author.list[[i]] <- strsplit(x = as.character(data.frame.in[i, ]$Authors), split = ";")[[1]]
-    for(j in 1:length(author.list[[i]]))
-    {
-      author.list[[i]][j] <- trim(author.list[[i]][j]) # trim cuts leading whitespace off of any character string
-      # pulls of first name/initials from author.list elements
-      author.lastonly[[i]][j] <- strsplit(x = (author.list[[i]][j]), split = ",", fixed = T)[[1]][1]     } # j
-      # extract institutions for each author from C1 and merge with authorlist
-      # splits apart all institutions listed in data.frame$C1
-      institution.list[[i]] <- strsplit(x = as.character(data.frame.in[i, ]$C1), split = "; [", fixed = T)[[1]]     
-    if(length(institution.list[[i]]) != 0)
-    { # if there are institutions listed
-      # build a list that is length-institutions long.
-      author.institutions.expanded[[i]] <- vector("list", length(institution.list[[i]]))
-      if(length(institution.list[[i]]) == 1)
-      { # if everyone's in the same institution
-        author.list.out[[i]] <- cbind(author.list[[i]], 
-                                      rep(institution.list[[i]][1], length(author.list[[i]])), 
-                                      rep(data.frame$Paper.Number[i], length(author.list[[i]])), 
-                                      rep(as.character(data.frame$Title[i]), length(author.list[[i]]))
-                                      )
-        # cbind author names, institution (there's only one) rep'd number-of-authors times.
-      } # if
-      else 
-        { # if there are multiple institutions
-        for(k in 1:length(institution.list[[i]]))
-        { # loop over the different institutions
-          author.institutions[[i]][k] <- strsplit(x = as.character(institution.list[[i]][k]), split = "]", fixed = T)[[1]][1]
-          # extract the authors listed before the institutions (authors listed in [] and sep'd by ";")
-          if(k == 1)
-          { # for first element in list, character string is different ([authors] inst;). clean up first element of author.institutions[[i]] 
-            author.institutions[[i]][k] <- strsplit(x = as.character(author.institutions[[i]][k]), split = "[", fixed = T)[[1]][2]
-          }
-          institution.list2[[i]][k] <- strsplit(x = as.character(institution.list[[i]][k]), split = "]", fixed = T)[[1]][2]
-          author.institutions.expanded[[i]][[k]] <- cbind((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]]), 
-                                                          rep(institution.list2[[i]][k], length((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]]))),
-                                                          rep(data.frame$Paper.Number[i], length((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]]))), 
-                                                          rep(as.character(data.frame$Title[i]), length((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]])))
-                                                          )
-        } # k
-        # merge authors in author.list and institutions in institution.list2
-        author.list.out[[i]] <- do.call("rbind", author.institutions.expanded[[i]])
-      } # END else
-    } # END if there are institutions listed
-    else
-    {
-      author.list.out[[i]] <- cbind(author.list[[i]], 
-                                  rep(NA, length(author.list[[i]])), 
-                                  rep(data.frame$Paper.Number[i], length(author.list[[i]])), 
-                                  rep(as.character(data.frame$Title[i]), length(author.list[[i]]))
-                                  )
-    } # END else
-  } # i
-  
-  # unlist author.list.out and store as one large dataframe
-  author.full.frame <- as.data.frame(do.call("rbind", author.list.out))   
-  names(author.full.frame) <- c("FullName", "FullAffil", "Paper.Number", "PaperTitle")
-
-  return(author.full.frame)
-}
+# BuildAuthorFrame <- function(data.frame.in)
+# {
+#   institution.list <- institution.list2 <- author.institutions <- vector("list", length = dim(data.frame.in)[1])
+#   author.institutions.expanded <- author.list <- author.lastonly <- vector("list", length = dim(data.frame.in)[1])
+#   author.list.out <- First <- Last <- author.frame <- data.list.au <- vector("list", length = dim(data.frame.in)[1])
+# 
+#   # loop to build author data list
+#   for(i in 2:dim(data.frame.in)[1])
+#   { # loop starts at 2 because paper 1 is authored by Anonymous and there's no info in the author fields
+#     # extract authors from data.frame$Author field
+#     author.list[[i]] <- strsplit(x = as.character(data.frame.in[i, ]$Authors), split = ";")[[1]]
+#     for(j in 1:length(author.list[[i]]))
+#     {
+#       author.list[[i]][j] <- trim(author.list[[i]][j]) # trim cuts leading whitespace off of any character string
+#       # pulls of first name/initials from author.list elements
+#       author.lastonly[[i]][j] <- strsplit(x = (author.list[[i]][j]), split = ",", fixed = T)[[1]][1]     } # j
+#       # extract institutions for each author from C1 and merge with authorlist
+#       # splits apart all institutions listed in data.frame$C1
+#       institution.list[[i]] <- strsplit(x = as.character(data.frame.in[i, ]$C1), split = "; [", fixed = T)[[1]]     
+#     if(length(institution.list[[i]]) != 0)
+#     { # if there are institutions listed
+#       # build a list that is length-institutions long.
+#       author.institutions.expanded[[i]] <- vector("list", length(institution.list[[i]]))
+#       if(length(institution.list[[i]]) == 1)
+#       { # if everyone's in the same institution
+#         author.list.out[[i]] <- cbind(author.list[[i]], 
+#                                       rep(institution.list[[i]][1], length(author.list[[i]])), 
+#                                       rep(data.frame$Paper.Number[i], length(author.list[[i]])), 
+#                                       rep(as.character(data.frame$Title[i]), length(author.list[[i]]))
+#                                       )
+#         # cbind author names, institution (there's only one) rep'd number-of-authors times.
+#       } # if
+#       else 
+#         { # if there are multiple institutions
+#         for(k in 1:length(institution.list[[i]]))
+#         { # loop over the different institutions
+#           author.institutions[[i]][k] <- strsplit(x = as.character(institution.list[[i]][k]), split = "]", fixed = T)[[1]][1]
+#           # extract the authors listed before the institutions (authors listed in [] and sep'd by ";")
+#           if(k == 1)
+#           { # for first element in list, character string is different ([authors] inst;). clean up first element of author.institutions[[i]] 
+#             author.institutions[[i]][k] <- strsplit(x = as.character(author.institutions[[i]][k]), split = "[", fixed = T)[[1]][2]
+#           }
+#           institution.list2[[i]][k] <- strsplit(x = as.character(institution.list[[i]][k]), split = "]", fixed = T)[[1]][2]
+#           author.institutions.expanded[[i]][[k]] <- cbind((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]]), 
+#                                                           rep(institution.list2[[i]][k], length((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]]))),
+#                                                           rep(data.frame$Paper.Number[i], length((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]]))), 
+#                                                           rep(as.character(data.frame$Title[i]), length((strsplit(x = author.institutions[[i]][k], split = ";", fixed = T)[[1]])))
+#                                                           )
+#         } # k
+#         # merge authors in author.list and institutions in institution.list2
+#         author.list.out[[i]] <- do.call("rbind", author.institutions.expanded[[i]])
+#       } # END else
+#     } # END if there are institutions listed
+#     else
+#     {
+#       author.list.out[[i]] <- cbind(author.list[[i]], 
+#                                   rep(NA, length(author.list[[i]])), 
+#                                   rep(data.frame$Paper.Number[i], length(author.list[[i]])), 
+#                                   rep(as.character(data.frame$Title[i]), length(author.list[[i]]))
+#                                   )
+#     } # END else
+#   } # i
+#   
+#   # unlist author.list.out and store as one large dataframe
+#   author.full.frame <- as.data.frame(do.call("rbind", author.list.out))   
+#   names(author.full.frame) <- c("FullName", "FullAffil", "Paper.Number", "PaperTitle")
+# 
+#   return(author.full.frame)
+# }
 
 # function to extract author affiliations
 # parse text in FullAffil field to build unique author ID and get indicators for presence of different keywords in author affiliation
-GetAuthorAffils <- function(author.frame)
-{
-  LastName <- FirstName <- AuthorID <- AllInits <- OneInit <- Dept <- Sch <- Univ <- rep(NA, dim(author.frame)[1])
-  Math <- Ecol <- Epi <- Evol <- Stat <- Vet <- Ctr <- Biol <- Med <- rep(NA, dim(author.frame)[1])
-  for(i in 1:dim(author.frame)[1])
-  {
-    # split names into first and last vectors: strip off last name; make all characters lower-case
-    LastName[i] <- tolower(strsplit(x = as.character((author.frame[i, 1])), split = ",", fixed = T)[[1]][1]) 
-    # strip off first name; remove leading whitespace with "trim"
-    FirstName[i] <- trim(strsplit(x = as.character((author.frame[i, 1])), split = ",", fixed = T)[[1]][2]) 
-    # refine FirstName so that it's only initials
-    # remove periods
-    FirstName[i] <- gsub("[.]", "", FirstName[i])[[1]] 
-    # remove lower-case letters
-    AllInits[i] <- gsub("[a-z]", "", FirstName[i])[[1]] 
-    # remove spaces; change initials to lower-case
-    AllInits[i] <- tolower(gsub(" ", "", AllInits[i])[[1]]) 
-    # remove all characters past first one
-    OneInit[i] <- substring(AllInits[i], 1, 1) 
-    AuthorID[i] <- trim(paste(LastName[i], " ", OneInit[i], sep = ""))
-    # create indicators for the strings "Univ", "Sch Med" or "Med Sch", "Ctr", "Math", "Stat", "Ecol", "Evol", "Epi", "Vet", "Biol" appearing in FullAffil
-    Univ[i] <- ifelse(length(grep("Univ", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Math[i] <- ifelse(length(grep("Math", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Stat[i] <- ifelse(length(grep("Stat", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Ecol[i] <- ifelse(length(grep("Ecol", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Evol[i] <- ifelse(length(grep("Evol", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Biol[i] <- ifelse(length(grep("Bio", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Epi[i] <- ifelse(length(grep("Epi", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Ctr[i] <- ifelse(length(grep("Ctr", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Vet[i] <- ifelse(length(grep("Vet", author.frame$FullAffil[i])) >= 1, 1, 0)
-    Med[i] <- ifelse(((length(grep("Med Sch", author.frame$FullAffil[i])) >= 1) | (length(grep("Sch Med", author.frame$FullAffil[i])) >= 1)), 1, 0)
-    #  print(i)
-  }
-  author.affil.frame <- cbind(author.frame, LastName, FirstName, AllInits, OneInit, AuthorID, Univ, Math, Stat, Ecol, Evol, Biol, Epi, Ctr, Vet, Med)
-  names(author.affil.frame) <- c(names(author.frame), "LastName", "FirstName", "AllInits", 
-                                       "OneInit", "AuthorID", "Univ", "Math", "Stat", 
-                                       "Ecol", "Evol", "Biol", "Epi", "Ctr", "Vet", "Med"
-                                 )
-  return(author.affil.frame)
-}
+# GetAuthorAffils <- function(author.frame)
+# {
+#   LastName <- FirstName <- AuthorID <- AllInits <- OneInit <- Dept <- Sch <- Univ <- rep(NA, dim(author.frame)[1])
+#   Math <- Ecol <- Epi <- Evol <- Stat <- Vet <- Ctr <- Biol <- Med <- rep(NA, dim(author.frame)[1])
+#   for(i in 1:dim(author.frame)[1])
+#   {
+#     # split names into first and last vectors: strip off last name; make all characters lower-case
+#     LastName[i] <- tolower(strsplit(x = as.character((author.frame[i, 1])), split = ",", fixed = T)[[1]][1]) 
+#     # strip off first name; remove leading whitespace with "trim"
+#     FirstName[i] <- trim(strsplit(x = as.character((author.frame[i, 1])), split = ",", fixed = T)[[1]][2]) 
+#     # refine FirstName so that it's only initials
+#     # remove periods
+#     FirstName[i] <- gsub("[.]", "", FirstName[i])[[1]] 
+#     # remove lower-case letters
+#     AllInits[i] <- gsub("[a-z]", "", FirstName[i])[[1]] 
+#     # remove spaces; change initials to lower-case
+#     AllInits[i] <- tolower(gsub(" ", "", AllInits[i])[[1]]) 
+#     # remove all characters past first one
+#     OneInit[i] <- substring(AllInits[i], 1, 1) 
+#     AuthorID[i] <- trim(paste(LastName[i], " ", OneInit[i], sep = ""))
+#     # create indicators for the strings "Univ", "Sch Med" or "Med Sch", "Ctr", "Math", "Stat", "Ecol", "Evol", "Epi", "Vet", "Biol" appearing in FullAffil
+#     Univ[i] <- ifelse(length(grep("Univ", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Math[i] <- ifelse(length(grep("Math", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Stat[i] <- ifelse(length(grep("Stat", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Ecol[i] <- ifelse(length(grep("Ecol", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Evol[i] <- ifelse(length(grep("Evol", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Biol[i] <- ifelse(length(grep("Bio", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Epi[i] <- ifelse(length(grep("Epi", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Ctr[i] <- ifelse(length(grep("Ctr", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Vet[i] <- ifelse(length(grep("Vet", author.frame$FullAffil[i])) >= 1, 1, 0)
+#     Med[i] <- ifelse(((length(grep("Med Sch", author.frame$FullAffil[i])) >= 1) | (length(grep("Sch Med", author.frame$FullAffil[i])) >= 1)), 1, 0)
+#     #  print(i)
+#   }
+#   author.affil.frame <- cbind(author.frame, LastName, FirstName, AllInits, OneInit, AuthorID, Univ, Math, Stat, Ecol, Evol, Biol, Epi, Ctr, Vet, Med)
+#   names(author.affil.frame) <- c(names(author.frame), "LastName", "FirstName", "AllInits", 
+#                                        "OneInit", "AuthorID", "Univ", "Math", "Stat", 
+#                                        "Ecol", "Evol", "Biol", "Epi", "Ctr", "Vet", "Med"
+#                                  )
+#   return(author.affil.frame)
+# }
 
 # function to merge multiple records for same author
-AuthorMerge <- function(author.frame)
-{
-  unique.authors <- length(levels(factor(author.frame$AuthorID))) #  unique authors
-  author.papers <- vector("list", unique.authors)
-  author.unique.frame <- as.data.frame(matrix(NA, nrow = unique.authors, ncol = 11))
-  names(author.unique.frame) <- c("AuthorID", "TotPapers", "TotUniv", "TotMath", 
-                                  "TotStat", "TotEcol", "TotEvol", "TotEpi", "TotMed", 
-                                  "TotVet", "TotBiol")
-  
-  for(i in 1:unique.authors)
-  { # build dataframe with one row per author, and indicators author math, stat, ecol, evol, etc. affiliations over ALL affiliations for that author
-    # extract all references for a given AuthorID
-    author.papers[[i]] <- subset(author.frame, AuthorID == levels(factor(author.frame$AuthorID))[i])
-    author.unique.frame$AuthorID[i] <- trim(levels(factor(author.frame$AuthorID))[i])
-    author.unique.frame$TotPapers[i] <- length(levels(factor(author.papers[[i]]$Paper.Number)))
-    author.unique.frame$TotUniv[i] <- ifelse(sum(author.papers[[i]]$Univ) >= 1, 1, 0)
-    author.unique.frame$TotMath[i] <- ifelse(sum(author.papers[[i]]$Math) >= 1, 1, 0)
-    author.unique.frame$TotStat[i] <- ifelse(sum(author.papers[[i]]$Stat) >= 1, 1, 0)
-    author.unique.frame$TotEcol[i] <- ifelse(sum(author.papers[[i]]$Ecol) >= 1, 1, 0)
-    author.unique.frame$TotEvol[i] <- ifelse(sum(author.papers[[i]]$Evol) >= 1, 1, 0)
-    author.unique.frame$TotBiol[i] <- ifelse(sum(author.papers[[i]]$Biol) >= 1, 1, 0)
-    author.unique.frame$TotEpi[i] <- ifelse(sum(author.papers[[i]]$Epi) >= 1, 1, 0)
-    author.unique.frame$TotMed[i] <- ifelse(sum(author.papers[[i]]$Med) >= 1, 1, 0)
-    author.unique.frame$TotVet[i] <- ifelse(sum(author.papers[[i]]$Vet) >= 1, 1, 0)
-    author.unique.frame$TotCtr[i] <- ifelse(sum(author.papers[[i]]$Ctr) >= 1, 1, 0)
-    #  print(i)
-  } #i
-  
-  return(author.unique.frame)
-}
+# AuthorMerge <- function(author.frame)
+# {
+#   unique.authors <- length(levels(factor(author.frame$AuthorID))) #  unique authors
+#   author.papers <- vector("list", unique.authors)
+#   author.unique.frame <- as.data.frame(matrix(NA, nrow = unique.authors, ncol = 11))
+#   names(author.unique.frame) <- c("AuthorID", "TotPapers", "TotUniv", "TotMath", 
+#                                   "TotStat", "TotEcol", "TotEvol", "TotEpi", "TotMed", 
+#                                   "TotVet", "TotBiol")
+#   
+#   for(i in 1:unique.authors)
+#   { # build dataframe with one row per author, and indicators author math, stat, ecol, evol, etc. affiliations over ALL affiliations for that author
+#     # extract all references for a given AuthorID
+#     author.papers[[i]] <- subset(author.frame, AuthorID == levels(factor(author.frame$AuthorID))[i])
+#     author.unique.frame$AuthorID[i] <- trim(levels(factor(author.frame$AuthorID))[i])
+#     author.unique.frame$TotPapers[i] <- length(levels(factor(author.papers[[i]]$Paper.Number)))
+#     author.unique.frame$TotUniv[i] <- ifelse(sum(author.papers[[i]]$Univ) >= 1, 1, 0)
+#     author.unique.frame$TotMath[i] <- ifelse(sum(author.papers[[i]]$Math) >= 1, 1, 0)
+#     author.unique.frame$TotStat[i] <- ifelse(sum(author.papers[[i]]$Stat) >= 1, 1, 0)
+#     author.unique.frame$TotEcol[i] <- ifelse(sum(author.papers[[i]]$Ecol) >= 1, 1, 0)
+#     author.unique.frame$TotEvol[i] <- ifelse(sum(author.papers[[i]]$Evol) >= 1, 1, 0)
+#     author.unique.frame$TotBiol[i] <- ifelse(sum(author.papers[[i]]$Biol) >= 1, 1, 0)
+#     author.unique.frame$TotEpi[i] <- ifelse(sum(author.papers[[i]]$Epi) >= 1, 1, 0)
+#     author.unique.frame$TotMed[i] <- ifelse(sum(author.papers[[i]]$Med) >= 1, 1, 0)
+#     author.unique.frame$TotVet[i] <- ifelse(sum(author.papers[[i]]$Vet) >= 1, 1, 0)
+#     author.unique.frame$TotCtr[i] <- ifelse(sum(author.papers[[i]]$Ctr) >= 1, 1, 0)
+#     #  print(i)
+#   } #i
+#   
+#   return(author.unique.frame)
+# }
 
 # build author matrix for coauthorship network
 BuildAuthorGraph <- function(all.authors, unique.authors)
@@ -481,7 +481,7 @@ DataFrameAddons <- function(data.frame.in, all.authors, unique.authors)
   author.diversity <- total.author.ctrs <- num.authors.in.ctrs <- rep(NA, dim(data.frame.in)[1])
   num.authors <- math.author <- epi.author <- ecoevo.author <- biol.author <- rep(NA, dim(data.frame.in)[1])
   med.author <- vet.author <- stat.author <- discipline.class <- rep(NA, dim(data.frame.in)[1])
-
+  vet.tot <- med.tot <- stat.tot <- ecoevo.tot <- biol.tot <- epi.tot <- math.tot <- rep(NA, dim(data.frame.in)[1])
   for(i in 1:dim(data.frame.in)[1])
   {
     k <- subset(all.authors, as.numeric(as.character(Paper.Number)) == as.numeric(as.character(data.frame.in$Paper.Number))[i])
@@ -497,6 +497,13 @@ DataFrameAddons <- function(data.frame.in, all.authors, unique.authors)
     med.author[i] <- ifelse(sum(author.subset$TotMed) >= 1, 1, 0) 
     math.author[i] <- ifelse(sum(author.subset$TotMath) >= 1, 1, 0) 
     vet.author[i] <- ifelse(sum(author.subset$TotVet) >= 1, 1, 0) 
+    stat.tot[i] <- sum(author.subset$TotStat)
+    epi.tot[i] <- sum(author.subset$TotEpi)
+    ecoevo.tot[i] <- (sum(author.subset$TotEcol) + sum(author.subset$TotEvol))
+    biol.tot[i] <- sum(author.subset$TotBiol)
+    med.tot[i] <- sum(author.subset$TotMed)
+    math.tot[i] <- sum(author.subset$TotMath)
+    vet.tot[i] <- sum(author.subset$TotVet) 
     author.diversity[i] <- stat.author[i] + ecoevo.author[i] + biol.author[i] + med.author[i] + math.author[i] + epi.author[i] + vet.author[i]   
     total.author.ctrs[i] <- sum(author.subset$TotCtr)
     num.authors.in.ctrs[i] <- length(which(author.subset$TotCtr >= 1))
@@ -533,12 +540,16 @@ DataFrameAddons <- function(data.frame.in, all.authors, unique.authors)
                                         avg.author.close, author.diversity, total.author.ctrs, 
                                         num.authors.in.ctrs, num.authors, math.author, epi.author, 
                                         ecoevo.author, biol.author, med.author, vet.author, 
-                                        stat.author, discipline.class))
+                                        stat.author, math.tot, epi.tot, 
+                                        ecoevo.tot, biol.tot, med.tot, vet.tot, 
+                                        stat.tot, discipline.class))
   names(data.frame.out) <- c(names(data.frame.in), "avg.author.degree", "avg.author.between", 
                              "avg.author.close", "author.diversity", "total.author.ctrs", 
                              "num.authors.in.ctrs", "num.authors", "math.author", "epi.author", 
                              "ecoevo.author", "biol.author", "med.author", "vet.author", 
-                             "stat.author", "discipline.class")
+                             "stat.author", "math.tot", "epi.tot", 
+                             "ecoevo.tot", "biol.tot", "med.tot", "vet.tot", 
+                             "stat.tot", "discipline.class")
   return(data.frame.out)
 }
 
