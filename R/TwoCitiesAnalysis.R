@@ -29,10 +29,33 @@ TimesCitedHists(data.frame)
 
 all.authors <- BuildAuthorFrame(data.frame.in = data.frame)
 affils.test <- GetAuthorAffils(author.frame = all.authors)
+affils.test$CheckAffils <- rep(NA, dim(affils.test)[1])
+for(i in 1:dim(affils.test)[1]){
+  k <- factor(subset(affils.test, Paper.Number == affils.test$Paper.Number[i])$FullAffil)
+  affils.test$CheckAffils[i] <- ifelse(length(k) == 1, 0, 
+                                ifelse(length(levels(k)) == 1, 1, 0)
+                                )
+  print(i)
+}
+write.csv(affils.test, "./Data/AllAuthorAffils_28Apr2015_2.csv")
 unique.authors <- AuthorMerge(author.frame = affils.test)
 author.graph <- BuildAuthorGraph(all.authors = affils.test, unique.authors)
 author.diags <- NetworkDiagnostics(graph.in = author.graph, seed.in = 123)
 unique.authors.new <- as.data.frame(cbind(unique.authors, author.diags$out.unique.frame))
+
+# extract affiliation of lead author and add that to data.frame
+data.frame$LeadAuthorAffil <- rep(NA, dim (data.frame)1[])
+for(i in 1:dim(data.frame)[1]){
+  k <- subset(affils.test, Paper.Number == data.frame$Paper.Number[i])
+  data.frame$LeadAuthorAffil[i] <- ifelse(k$Math[1] == 1, "Math",
+                                   ifelse(k$Stat[1] == 1, "Stat",
+                                   ifelse(k$Ecol[1] == 1 | k$Evol[1] == 1, "Ecol",
+                                   ifelse(k$Biol[1] == 1, "Biol", 
+                                   ifelse(k$Epi[1] == 1, "Epi",
+                                   ifelse(k$Vet[1] == 1, "Vet",
+                                   ifelse(k$Med[1] == 1, "Med", "other")))))))
+  print(i)
+}
 
 cite.list <- BuildCitationFrame(data.frame.in = data.frame)
 assoc.mat <- BuildAssocMat(data.frame.in = data.frame, 
@@ -425,8 +448,211 @@ full.reader.assignments <- as.data.frame(rbind(comm1.reader.frame,
 # 2) sum (math, stat, ecol, evol, epi, med) across all paper authors
 data.frame.full <- DataFrameAddons(data.frame.in = data.frame, all.authors = affils.test, unique.authors)
 comm1.full <- subset(data.frame.full, Journal.Community == 1)
+comm1.vet <- sum(comm1.full$vet.tot)
+comm1.ecoevo <- sum(comm1.full$ecoevo.tot)
+comm1.biol <- sum(comm1.full$biol.tot)
+comm1.math <- sum(comm1.full$math.tot)
+comm1.stat <- sum(comm1.full$stat.tot)
+comm1.epi <- sum(comm1.full$epi.tot)
+comm1.med <- sum(comm1.full$med.tot)
+comm1.author.counts <- c(comm1.vet,
+                         comm1.ecoevo,
+                         comm1.biol,
+                         comm1.math,
+                         comm1.stat,
+                         comm1.epi,
+                         comm1.med)
 comm2.full <- subset(data.frame.full, Journal.Community == 2)
+comm2.vet <- sum(na.omit(comm2.full$vet.tot))
+comm2.ecoevo <- sum(na.omit(comm2.full$ecoevo.tot))
+comm2.biol <- sum(na.omit(comm2.full$biol.tot))
+comm2.math <- sum(na.omit(comm2.full$math.tot))
+comm2.stat <- sum(na.omit(comm2.full$stat.tot))
+comm2.epi <- sum(na.omit(comm2.full$epi.tot))
+comm2.med <- sum(na.omit(comm2.full$med.tot))
+comm2.author.counts <- c(comm2.vet,
+                         comm2.ecoevo,
+                         comm2.biol,
+                         comm2.math,
+                         comm2.stat,
+                         comm2.epi,
+                         comm2.med)
 comm3.full <- subset(data.frame.full, Journal.Community == 3)
+comm3.vet <- sum(comm3.full$vet.tot)
+comm3.ecoevo <- sum(comm3.full$ecoevo.tot)
+comm3.biol <- sum(comm3.full$biol.tot)
+comm3.math <- sum(comm3.full$math.tot)
+comm3.stat <- sum(comm3.full$stat.tot)
+comm3.epi <- sum(comm3.full$epi.tot)
+comm3.med <- sum(comm3.full$med.tot)
+comm3.author.counts <- c(comm3.vet,
+                         comm3.ecoevo,
+                         comm3.biol,
+                         comm3.math,
+                         comm3.stat,
+                         comm3.epi,
+                         comm3.med)
+
+comm1.00 <- subset(comm1.full, PubYear == 2000)
+sum(comm1.00$vet)
+comm1.00.vet <- sum(comm1.00$vet.tot)
+comm1.00.ecoevo <- sum(comm1.00$ecoevo.tot)
+comm1.00.biol <- sum(comm1.00$biol.tot)
+comm1.00.math <- sum(comm1.00$math.tot)
+comm1.00.stat <- sum(comm1.00$stat.tot)
+comm1.00.epi <- sum(comm1.00$epi.tot)
+comm1.00.med <- sum(comm1.00$med.tot)
+comm1.00.tot <- sum(comm1.00.vet, comm1.00.ecoevo, comm1.00.biol, comm1.00.math, 
+                 comm1.00.stat, comm1.00.epi, comm1.00.med)
+
+comm1.02 <- subset(comm1.full, PubYear == 2002)
+sum(comm1.02$vet)
+comm1.02.vet <- sum(comm1.02$vet.tot)
+comm1.02.ecoevo <- sum(comm1.02$ecoevo.tot)
+comm1.02.biol <- sum(comm1.02$biol.tot)
+comm1.02.math <- sum(comm1.02$math.tot)
+comm1.02.stat <- sum(comm1.02$stat.tot)
+comm1.02.epi <- sum(comm1.02$epi.tot)
+comm1.02.med <- sum(comm1.02$med.tot)
+comm1.02.tot <- sum(comm1.02.vet, 
+                    comm1.02.ecoevo, 
+                    comm1.02.biol, 
+                    comm1.02.math,
+                    comm1.02.stat, 
+                    comm1.02.epi, 
+                    comm1.02.med)
+
+comm1.04 <- subset(comm1.full, PubYear == 2004)
+sum(comm1.04$vet)
+comm1.04.vet <- sum(comm1.04$vet.tot)
+comm1.04.ecoevo <- sum(comm1.04$ecoevo.tot)
+comm1.04.biol <- sum(comm1.04$biol.tot)
+comm1.04.math <- sum(comm1.04$math.tot)
+comm1.04.stat <- sum(comm1.04$stat.tot)
+comm1.04.epi <- sum(comm1.04$epi.tot)
+comm1.04.med <- sum(comm1.04$med.tot)
+comm1.04.tot <- sum(comm1.04.vet, 
+                    comm1.04.ecoevo, 
+                    comm1.04.biol, 
+                    comm1.04.math,
+                    comm1.04.stat, 
+                    comm1.04.epi, 
+                    comm1.04.med)
+
+comm1.06 <- subset(comm1.full, PubYear == 2006)
+sum(comm1.06$vet)
+comm1.06.vet <- sum(comm1.06$vet.tot)
+comm1.06.ecoevo <- sum(comm1.06$ecoevo.tot)
+comm1.06.biol <- sum(comm1.06$biol.tot)
+comm1.06.math <- sum(comm1.06$math.tot)
+comm1.06.stat <- sum(comm1.06$stat.tot)
+comm1.06.epi <- sum(comm1.06$epi.tot)
+comm1.06.med <- sum(comm1.06$med.tot)
+comm1.06.tot <- sum(comm1.06.vet, 
+                    comm1.06.ecoevo, 
+                    comm1.06.biol, 
+                    comm1.06.math,
+                    comm1.06.stat, 
+                    comm1.06.epi, 
+                    comm1.06.med)
+
+comm1.08 <- subset(comm1.full, PubYear == 2008)
+sum(comm1.08$vet)
+comm1.08.vet <- sum(comm1.08$vet.tot)
+comm1.08.ecoevo <- sum(comm1.08$ecoevo.tot)
+comm1.08.biol <- sum(comm1.08$biol.tot)
+comm1.08.math <- sum(comm1.08$math.tot)
+comm1.08.stat <- sum(comm1.08$stat.tot)
+comm1.08.epi <- sum(comm1.08$epi.tot)
+comm1.08.med <- sum(comm1.08$med.tot)
+comm1.08.tot <- sum(comm1.08.vet, 
+                    comm1.08.ecoevo, 
+                    comm1.08.biol, 
+                    comm1.08.math,
+                    comm1.08.stat, 
+                    comm1.08.epi, 
+                    comm1.08.med)
+
+comm1.10 <- subset(comm1.full, PubYear == 2010)
+sum(comm1.10$vet)
+comm1.10.vet <-    sum(comm1.10$vet.tot)
+comm1.10.ecoevo <- sum(comm1.10$ecoevo.tot)
+comm1.10.biol <-   sum(comm1.10$biol.tot)
+comm1.10.math <-   sum(comm1.10$math.tot)
+comm1.10.stat <-   sum(comm1.10$stat.tot)
+comm1.10.epi <-    sum(comm1.10$epi.tot)
+comm1.10.med <-    sum(comm1.10$med.tot)
+comm1.10.tot <-    sum(comm1.10.vet, 
+                    comm1.10.ecoevo, 
+                    comm1.10.biol, 
+                    comm1.10.math,
+                    comm1.10.stat, 
+                    comm1.10.epi, 
+                    comm1.10.med)
+
+comm1.12 <- subset(comm1.full, PubYear == 2012)
+sum(comm1.12$vet)
+comm1.12.vet <-    sum(comm1.12$vet.tot)
+comm1.12.ecoevo <- sum(comm1.12$ecoevo.tot)
+comm1.12.biol <-   sum(comm1.12$biol.tot)
+comm1.12.math <-   sum(comm1.12$math.tot)
+comm1.12.stat <-   sum(comm1.12$stat.tot)
+comm1.12.epi <-    sum(comm1.12$epi.tot)
+comm1.12.med <-    sum(comm1.12$med.tot)
+comm1.12.tot <-    sum(comm1.12.vet, 
+                       comm1.12.ecoevo, 
+                       comm1.12.biol, 
+                       comm1.12.math,
+                       comm1.12.stat, 
+                       comm1.12.epi, 
+                       comm1.12.med)
+
+comm1.14 <- subset(comm1.full, PubYear == 2014)
+sum(comm1.14$vet)
+comm1.14.vet <-    sum(comm1.14$vet.tot)
+comm1.14.ecoevo <- sum(comm1.14$ecoevo.tot)
+comm1.14.biol <-   sum(comm1.14$biol.tot)
+comm1.14.math <-   sum(comm1.14$math.tot)
+comm1.14.stat <-   sum(comm1.14$stat.tot)
+comm1.14.epi <-    sum(comm1.14$epi.tot)
+comm1.14.med <-    sum(comm1.14$med.tot)
+comm1.14.tot <-    sum(comm1.14.vet, 
+                       comm1.14.ecoevo, 
+                       comm1.14.biol, 
+                       comm1.14.math,
+                       comm1.14.stat, 
+                       comm1.14.epi, 
+                       comm1.14.med)
+
+comm1.eco.time <- c(comm1.00.ecoevo / comm1.00.tot,
+                    comm1.02.ecoevo / comm1.02.tot,
+                    comm1.04.ecoevo / comm1.04.tot,
+                    comm1.06.ecoevo / comm1.06.tot,
+                    comm1.08.ecoevo / comm1.08.tot,
+                    comm1.10.ecoevo / comm1.10.tot,
+                    comm1.12.ecoevo / comm1.12.tot,
+                    comm1.14.ecoevo / comm1.14.tot
+                    )
+
+yr <- c(2000, 2002, 2004, 2006, 2008, 2010, 2012, 2014)
+plot(comm1.eco.time ~ yr, pch = 16, type = "b", ylim = c(0, 1))
+
+par(mfrow = c(1, 1))
+barplot((rbind(comm1.author.counts, comm2.author.counts, comm3.author.counts)), 
+        xlab = "Author affiliation", ylab = "Number of authors",
+        names = c("vet", "ecoevo", "biol", "math", "stat", "epi", "med"), 
+        col = c("lightblue", "pink", "gold"), 
+        legend.text = c("Vet Journal", "Gen Biol Journal", "Ecology Journal"),
+        args.legend = list("topleft",
+                           fill = c("lightblue", "pink", "gold"), bty = "n")
+        )
+
+relative.props <- cbind(comm1.author.counts / sum(comm1.author.counts), 
+                        comm2.author.counts / sum(comm2.author.counts), 
+                        comm3.author.counts / sum(comm3.author.counts))
+barplot(relative.props, 
+        legend = T)
+
 # PLOTS: author discipline diversity and Number center affiliations by annualized citation rate
 AuthorFactorsByCitesPlot(data.frame = data.frame.full)
 AuthorFactorsByCitesPlot(data.frame = comm1.full)
