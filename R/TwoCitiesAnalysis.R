@@ -2,7 +2,15 @@
 require(igraph)
 require(ape)
 require(lme4)
+require(vegan)
+require(graphics)
+
+source("./R/AuthorDiversityPlots.R")
+source("./R/CitationRateModel.R")
 source("./R/TwoCities_SourceFunctions.R")
+source("./R/GAMPlot.R")
+
+GAMPlot(data.frame)
 
 #------------------------------------------------------------------------------------------# 
 #-- Data are set up with two unique keys: -------------------------------------------------#
@@ -13,21 +21,37 @@ source("./R/TwoCities_SourceFunctions.R")
 #-------------------------------------------#
 #-- Preliminary description of papers ------#
 #-------------------------------------------#
-data.frame <- read.csv("./Data/IncludedPaperBank_Final.csv", header = T, sep = "\t")
-data.frame <- DataPrep(data.frame)
-jo.comms <- read.csv("./Data/JournalCommunityVector_16Dec2014.csv")
-jo.comms <- jo.comms[-c(1, 494, 603, 858), 2] # four papers removed in DataPrep function
-data.frame$Journal.Community <- jo.comms
-comm1 <- subset(data.frame, Journal.Community == 1)
-comm2 <- subset(data.frame, Journal.Community == 2)
-comm3 <- subset(data.frame, Journal.Community == 3)
+# data.frame <- read.csv("./Data/IncludedPaperBank_Final.csv", header = T, sep = "\t")
+# data.frame <- DataPrep(data.frame)
+# # jo.comms <- read.csv("./Data/JournalCommunityVector_16Dec2014.csv")
+# jo.comms.2 <- read.csv("./Data/FullPaperBank_FinalWithCommunities.csv", header = T)
+# # jo.comms <- jo.comms[-c(1, 494, 603, 858), 2] # four papers removed in DataPrep function
+# data.frame$Journal.Community <- data.frame$NumberAuthors <- data.frame$AuthInstAffil <- rep(NA, dim(data.frame)[1])
+# for(i in 1:dim(data.frame)[1]){
+#   k <- subset(jo.comms.2, Paper.Number == data.frame$Paper.Number[i])
+#   data.frame$Journal.Community[i] <- k$JoCommunityShifted[1]
+#   data.frame$NumberAuthors[i] <- k$NumberAuthors[1]
+#   data.frame$AuthInstAffil[i] <- as.character(k$AuthInstAffil)[1]
+#   print(i)
+# }
 
-JournalFreqHist(data.frame)
-TimesCitedHists(data.frame)
+#data.frame <- read.csv("./Data/FullDataFrame_AuthorInstsAndAffils.csv", header = T)
+data.frame <- read.csv("./Data/FullDataFrame_AuthorInstsAndAffils_20150928.csv", header = T)
+
+# # jo.comms
+# comm1 <- subset(data.frame, Journal.Community == 1)
+# comm2 <- subset(data.frame, Journal.Community == 2)
+# comm3 <- subset(data.frame, Journal.Community == 3)
+# 
+# JournalFreqHist(data.frame)
+# TimesCitedHists(data.frame)
 
 #-- prep all data --#
 
 all.authors <- BuildAuthorFrame(data.frame.in = data.frame)
+
+# add lead author ID to data.frame 
+
 affils.test <- GetAuthorAffils(author.frame = all.authors)
 affils.test$CheckAffils <- rep(NA, dim(affils.test)[1])
 for(i in 1:dim(affils.test)[1]){
@@ -37,37 +61,596 @@ for(i in 1:dim(affils.test)[1]){
                                 )
   print(i)
 }
-write.csv(affils.test, "./Data/AllAuthorAffils_28Apr2015_2.csv")
+
+data.frame$AuMath <- data.frame$AuStat <- data.frame$AuEcol <- data.frame$AuEvol <- rep(NA, dim(data.frame)[1])
+data.frame$AuBiol <- data.frame$AuEpi <- data.frame$AuVet <- data.frame$AuMed <- rep(NA, dim(data.frame)[1])
+data.frame$NumberAuthors <- rep(NA, dim(data.frame)[1])
+for(i in 1:dim(data.frame)[1]){
+  k <- subset(affils.test, Paper.Number == data.frame$Paper.Number[i])
+  data.frame$AuMath[i] <- sum(k$Math)
+  data.frame$AuStat[i] <- sum(k$Stat)
+  data.frame$AuEcol[i] <- sum(k$Ecol)
+  data.frame$AuEvol[i] <- sum(k$Evol)
+  data.frame$AuBiol[i] <- sum(k$Biol)
+  data.frame$AuEpi[i] <- sum(k$Epi)
+  data.frame$AuVet[i] <- sum(k$Vet)
+  data.frame$AuMed[i] <- sum(k$Med)
+  data.frame$NumberAuthors[i] <- dim(k)[1]
+  print(i)
+}
+
+
+# jo.comms
+comm1 <- subset(data.frame, Journal.Community == 1)
+comm2 <- subset(data.frame, Journal.Community == 2)
+comm3 <- subset(data.frame, Journal.Community == 3)
+
+# get top 10 most-cited papers per community
+comm1.sm <- subset(comm1, select = c("Title", "Source", "Authors", "PubYear", "TimesCited"))
+comm1.sm[order(comm1.sm$TimesCited, decreasing = T), ][1:10, 1:4]
+
+comm2.sm <- subset(comm2, select = c("Title", "Source", "Authors", "PubYear", "TimesCited"))
+comm2.sm[order(comm2.sm$TimesCited, decreasing = T), ][1:10, 1:4]
+
+comm3.sm <- subset(comm3, select = c("Title", "Source", "Authors", "PubYear", "TimesCited"))
+comm3.sm[order(comm3.sm$TimesCited, decreasing = T), ][1:10, 1:4]
+
+data.frame$AuShannonDiv <- rep(NA, dim(data.frame)[1])
+for(i in 1:dim(data.frame)[1]){
+  data.frame$AuShannonDiv[i] <- diversity(subset(data.frame[i, ], 
+                                                 select = c("AuMath", "AuStat",
+                                                            "AuEcol", "AuEvol",
+                                                            "AuBiol", "AuEpi",
+                                                            "AuVet", "AuMed")))
+  print(i)                    
+}
+
+# citation diversity
+cite.list <- BuildCitationFrame(data.frame.in = data.frame)
+
+assoc.mat <- BuildAssocMat(data.frame.in = data.frame, 
+                           cite.frame = cite.list)
+
+data.frame$citations.within <- data.frame$citations.between <- rep(NA, dim(data.frame)[1])
+for(i in 1:dim(data.frame)[1]){
+  data.frame$citations.within[i] <- sum(na.omit(assoc.mat[i, which(data.frame$Journal.Community == data.frame$Journal.Community[i])]))
+  data.frame$citations.between[i] <- sum(na.omit(assoc.mat[i, which(data.frame$Journal.Community != data.frame$Journal.Community[i])]))
+  print(i)
+}
+data.frame$between.to.tot <- data.frame$citations.between / (data.frame$citations.within + data.frame$citations.between)
+
+#-------------------------------------------------#
+#-- fit author diversity models and build Fig 6 --#
+#-------------------------------------------------#
+require(mgcv)
+
+source("./R/AuthorDiversityPlots.R")
+AuthorDiversityPlots(data.frame = data.frame)
+
+CitationRateModel(data.frame = data.frame)
+
+plot(data.frame$NumberAuthors ~ data.frame$AuShannonDiv)
+
+affil.inst.tab <- table(data.frame$LeadAuthorAffil, data.frame$AuthInstAffil)
+inst.affil.tab <- table(data.frame$LeadAuthorAffil)
+
+# write.csv(affils.test, "./Data/AllAuthorAffils_28Apr2015_2.csv")
 unique.authors <- AuthorMerge(author.frame = affils.test)
 author.graph <- BuildAuthorGraph(all.authors = affils.test, unique.authors)
+
+auth.adj <- get.adjacency (author.graph)
+author.edgelist <- get.edgelist(author.graph, names = F)
+author.edgelist <- as.data.frame (cbind(author.edgelist, seq(1:dim(author.edgelist)[1])))
+names(author.edgelist) <- c("node.in", "node.out", "edge.ind")
+author.edgeweights <- E(author.graph)$weight
+
+auth.full.edge.data <- cbind(author.edgelist, author.edgeweights)
+auth.reduced.edgelist <- subset(auth.full.edge.data, auth.cut.edge == 0)
+
+author.nodes <- V(author.graph)$name 
+auth.node.size <- diag(auth.adj)
+auth.node.number <- seq(1:length(author.nodes))
+auth.node.data <- cbind(author.nodes, auth.node.size, auth.node.number)
+
+# write.csv(auth.reduced.edgelist, "./Data/AuthorEdges.csv")
+# write.csv(auth.node.data, "./Data/AuthorNodes.csv")
+
+
 author.diags <- NetworkDiagnostics(graph.in = author.graph, seed.in = 123)
 unique.authors.new <- as.data.frame(cbind(unique.authors, author.diags$out.unique.frame))
 
 # extract affiliation of lead author and add that to data.frame
-data.frame$LeadAuthorAffil <- rep(NA, dim (data.frame)1[])
-for(i in 1:dim(data.frame)[1]){
-  k <- subset(affils.test, Paper.Number == data.frame$Paper.Number[i])
-  data.frame$LeadAuthorAffil[i] <- ifelse(k$Math[1] == 1, "Math",
-                                   ifelse(k$Stat[1] == 1, "Stat",
-                                   ifelse(k$Ecol[1] == 1 | k$Evol[1] == 1, "Ecol",
-                                   ifelse(k$Biol[1] == 1, "Biol", 
-                                   ifelse(k$Epi[1] == 1, "Epi",
-                                   ifelse(k$Vet[1] == 1, "Vet",
-                                   ifelse(k$Med[1] == 1, "Med", "other")))))))
-  print(i)
-}
+# data.frame$LeadAuthorAffil <- rep(NA, dim (data.frame)1[])
+# for(i in 1:dim(data.frame)[1]){
+#   k <- subset(affils.test, Paper.Number == data.frame$Paper.Number[i])
+#   data.frame$LeadAuthorAffil[i] <- ifelse(k$Math[1] == 1, "Math",
+#                                    ifelse(k$Stat[1] == 1, "Stat",
+#                                    ifelse(k$Ecol[1] == 1 | k$Evol[1] == 1, "Ecol",
+#                                    ifelse(k$Biol[1] == 1, "Biol", 
+#                                    ifelse(k$Epi[1] == 1, "Epi",
+#                                    ifelse(k$Vet[1] == 1, "Vet",
+#                                    ifelse(k$Med[1] == 1, "Med", "other")))))))
+#   print(i)
+# }
 
-cite.list <- BuildCitationFrame(data.frame.in = data.frame)
-assoc.mat <- BuildAssocMat(data.frame.in = data.frame, 
-                           cite.frame = cite.list)
+comm1.citelist <- cite.list[which(data.frame$Journal.Community == 1)]
+assoc.mat.comm1 <- BuildAssocMat(data.frame.in = comm1, 
+                           cite.frame = comm1.citelist)
+
+# get within-community and between-community edgeweights
+comm1 <- subset(data.frame, Journal.Community == 1)
+comm1.edgeswithin <- assoc.mat[which(data.frame$Journal.Community == 1), which(data.frame$Journal.Community == 1)]
+comm1.edgesbetween <- assoc.mat[which(data.frame$Journal.Community == 1), which(data.frame$Journal.Community != 1)]
+comm1.edges.comm2 <- assoc.mat[which(data.frame$Journal.Community == 1), which(data.frame$Journal.Community == 2)]
+comm1.edges.comm3 <- assoc.mat[which(data.frame$Journal.Community == 1), which(data.frame$Journal.Community == 3)]
+quantile(na.omit(as.vector(comm1.edgeswithin)), c(0.025, 0.5, 0.975))
+sum(na.omit(comm1.edgeswithin))
+sum(na.omit(comm1.edgesbetween))
+table(comm1.edgeswithin)
+table(comm1.edgesbetween)
+table(comm1.edges.comm2)
+table(comm1.edges.comm3)
+
+comm2.edgeswithin <- assoc.mat[which(data.frame$Journal.Community == 2), which(data.frame$Journal.Community == 2)]
+comm2.edgesbetween <- assoc.mat[which(data.frame$Journal.Community == 2), which(data.frame$Journal.Community != 2)]
+comm2.edges.comm1 <- assoc.mat[which(data.frame$Journal.Community == 2), which(data.frame$Journal.Community == 1)]
+comm2.edges.comm3 <- assoc.mat[which(data.frame$Journal.Community == 2), which(data.frame$Journal.Community == 3)]
+quantile(na.omit(as.vector(comm2.edgeswithin)), c(0.025, 0.5, 0.975))
+table(comm2.edgeswithin)
+table(comm2.edgesbetween)
+table(comm2.edges.comm1)
+table(comm2.edges.comm3)
+
+comm3.edges <- assoc.mat[which(data.frame$Journal.Community == 3), ]
+comm3.edgeswithin <- comm3.edges[ , which(data.frame$Journal.Community == 3)]
+comm3.edgesbetween <- comm3.edges[ , which(data.frame$Journal.Community != 3)]
+comm3.edges.comm1 <- comm3.edges[ , which(data.frame$Journal.Community == 1)]
+comm3.edges.comm2 <- comm3.edges[ , which(data.frame$Journal.Community == 2)]
+quantile(na.omit(as.vector(comm3.edgeswithin)), c(0.025, 0.5, 0.975))
+table(comm3.edgeswithin)
+table(comm3.edgesbetween)
+table(comm3.edges.comm1)
+table(comm3.edges.comm2)
+
 full.citation.frame <- do.call("rbind", cite.list) # 69905 total refs
 paper.graph <- BuildPaperGraph(assoc.mat, data.frame)
 paper.diags <- NetworkDiagnostics(graph.in = paper.graph, seed.in = 123)
 
 journal.data <- ExtractJournalData(data.frame)
+data.frame$Source <- ifelse(data.frame$Source == "PHILOSOPHICAL TRANSACTIONS OF THE ROYAL SOCIETY B-BIOLOGICAL SCIENCES",
+                        "PHILOSOPHICAL TRANSACTIONS B", as.character(data.frame$Source))
+data.frame$Source  <- ifelse(data.frame$Source == "PROCEEDINGS OF THE NATIONAL ACADEMY OF SCIENCES OF THE UNITED STATES OF AMERICA",
+                        "PNAS", as.character(data.frame$Source))
+data.frame$Source  <- ifelse(data.frame$Source == "PROCEEDINGS OF THE ROYAL SOCIETY B-BIOLOGICAL SCIENCES",
+                        "PROCEEDINGS OF THE ROYAL SOCIETY B", as.character(data.frame$Source))
+data.frame$Source  <- ifelse(data.frame$Source == "TRANSACTIONS OF THE ROYAL SOCIETY OF TROPICAL MEDICINE AND HYGIENE",
+                        "TRANS ROY SOC TROPICAL MEDICINE AND HYGIENE", as.character(data.frame$Source))
+
 journal.graph <- BuildJournalGraph(data.frame.in = data.frame,
                                    assoc.mat.in = assoc.mat)
+
+require(arcdiagram)
+require(RColorBrewer)
+source("./R/ArcDiagramPlot.R")
+svg("./Figures/Figure1_V5_20150928.svg")
+ArcDiagramPlot(journal.graph)
+dev.off()
+
+# # get edgelist
+# edgelist = get.edgelist(journal.graph)
+# 
+# # clean up the really long names
+# 
+# 
+# # get vertex labels
+# #arcdiagram orders by edgelist not by igraph vertex labels- so doesn't include those species that don't have edges.
+# nam=character()
+# for(i in 1:dim(edgelist)[1]){
+#   nam=c(nam, edgelist[i,])  
+# }
+# vlabels = levels(factor(nam))
+# 
+# 
+# # batcomsMatlab=read.csv("batcomsMatlab.csv")
+# # bc=sort(unique(unlist(batcomsMatlab)))
+# # batcoms=list()
+# # for(i in bc){
+# #   batcoms[[i]]=rownames(batsharedvirusesmat)[which(batcoms0matlab==i)]
+# # }
+# # 
+# # # vertex groups (communities)
+# # b=character()
+# # com=numeric()
+# # for(i in 1:length(batcoms)){
+# #   b=c(b,as.character(batcoms[[i]]))
+# #   com=c(com,rep(i,length(batcoms[[i]])))
+# #}
+# com <- rep(NA, length(vlabels))
+# for(i in 1:length(vlabels)){
+#   k <- subset(data.frame, as.character(Source) == vlabels[i])
+#   com[i] <- ifelse(length(k$Journal.Community[which(is.na(k$Journal.Community) == F)]) == 0, NA,
+#                    k$Journal.Community[which(is.na(k$Journal.Community) == F)][1])    
+# }
+# com <- as.numeric(as.character(com))
+# com <- ifelse(com == 1, 4, com)
+# com <- ifelse(com == 2, 5, com)
+# com <- ifelse(com == 4, 2, com)
+# com <- ifelse(com == 5, 1, com)
+# com <- ifelse(is.na(com), 4, com)
+# #vgroups = com[match(vlabels, b)]
+# vgroups = com
+# #rename groups so that largest communities first
+# x=sort(unique(vgroups))
+# lx=numeric()
+# for(i in 1:length(x)){
+#   lx [i]=length(which(vgroups==x[i]))
+# }
+# y=x[order(lx,decreasing=TRUE)]
+# vgroups2=numeric()
+# for(i in 1:length(vgroups)){
+#   vgroups2[i] <- ifelse(is.na(vgroups[i]) == T, NA, which(y==vgroups[i]))
+#   print(i)
+# }
+# 
+# # get vertex fill color
+# col1=brewer.pal(12,"Paired")
+# cols=rep(col1[c(1,3,5,7,9,11)],3)
+# cols <- c(rgb(255/255, 215/255, 153/255, alpha = .3), 
+#           rgb(255/255, 153/255, 153/255, alpha = .3), 
+#           rgb(153/255, 204/255, 255/255, alpha = .3), 
+#           rgb(153/255, 204/255, 153/255, alpha = .3))
+# vfill = rep("gray",length(vgroups2))
+# for(i in 1:length(y)){
+#   vfill[which(vgroups2==i)]=cols[i]
+# }
+# # get vertex border color
+# #cols=rep(col1[c(2,4,6,8,10,12)],3)
+# cols=c(rgb(255/255, 215/255, 0), "red", "blue", "green")
+# vborders = rep("gray",length(vgroups2))
+# for(i in 1:length(y)){
+#   vborders[which(vgroups2==i)]=cols[i]
+# }
+# 
+# 
+# # get vertex degree
+# # degrees=batdata.network.njab$degree[match(vlabels,batdata.network.njab$binomial)]
+# jo.degrees=degree(journal.graph)
+# 
+# # get edges value
+# # values = get.edge.attribute(batsharedvirusesgraph.nr.njab, "weight")
+# values = get.edge.attribute(journal.graph, "weight")
+# 
+# #sort by community, then degree
+# ord=order(vgroups2,max(jo.degrees)-jo.degrees)
+# 
+# #with species labels 
+# par(mar=c(20,0,2,0))
+# arcplot(edgelist, 
+#         sorted = T,
+#         ordering=ord, 
+# #        labels=vlabels, 
+#         cex.labels=0.6,
+#         show.nodes=TRUE, 
+#         col.nodes=vborders, 
+#         bg.nodes=vfill,
+#         cex.nodes = jo.degrees/max(jo.degrees)+1, 
+#         pch.nodes=21,
+#         col.labels="grey30",
+#         lwd.nodes = 1.5, 
+#         line= -0.1, 
+#         lwd.arcs = .5 * values,
+#         col.arcs = rgb(160/255, 160/255, 160/255, alpha = .2))
+# # col.arcs = "#5998ff30"
+# #--- END angie code ---#
+
+journal.adj <- get.adjacency(journal.graph)
+# build 1492 x 2 matrix of edges
+journal.edgelist <- which(journal.adj == 1, arr.ind = T)
+journal.edgelist <- as.data.frame (cbind(journal.edgelist, seq(1:dim(journal.edgelist)[1])))
+names(journal.edgelist) <- c("node.in", "node.out", "edge.ind")
+# to get edgeweights, extract i, j and j, i from edgelist, and get weights for each. 
+journal.edgelist.reduced <- rep(NA, dim(journal.edgelist)[1])
+symm.edge <- compiled.weight <- cut.edge <- rep(NA, dim(journal.edgelist)[1])
+journal.edgeweights <- E(journal.graph)$weight
+
+for(i in 1:dim(journal.edgelist)[1]){
+  # check for symmetry
+  test.sym <- subset(journal.edgelist, node.in == journal.edgelist$node.out[i] & journal.edgelist$node.out == journal.edgelist$node.in[i])
+  symm.edge[i] <- ifelse(dim(test.sym)[1] == 0, 0, test.sym$edge.ind)
+  cut.edge[i] <- ifelse(dim(test.sym)[1] == 0, 0, ifelse(test.sym$edge.ind <= i, 0, 1))
+  compiled.weight[i] <- ifelse(symm.edge[i] == 0, journal.edgeweights[i], journal.edgeweights[i] + journal.edgeweights[test.sym$edge.ind])
+}
+full.edge.data <- cbind(journal.edgelist, journal.edgeweights, symm.edge, cut.edge, compiled.weight)
+reduced.edgelist <- subset(full.edge.data, cut.edge == 0)
+
+# journal.edgeweights.long <- c(journal.edgeweights, journal.edgeweights)
+# journal.edges <- cbind(journal.edgelist, journal.edgeweights.long[1:1492])
+journal.nodes <- V(journal.graph)$name 
+journal.comm <- journal.size <- rep(NA, length(journal.nodes))
+for(i in 1:length(journal.comm)){
+  k <- subset(data.frame, Source == journal.nodes[i])
+  journal.comm[i] <- k$Journal.Community[1]
+  journal.size[i] <- dim(k)[1]
+}  
+node.number <- seq(1:length(journal.nodes))
+node.data <- cbind(journal.nodes, journal.comm, journal.size, node.number)
+
+# write.csv(reduced.edgelist, "./Data/JournalEdges_2.csv")
+# write.csv(node.data, "./Data/JournalNames.csv")
 # 26 journals get cut when constructing journal.graph....
+
+
+paper.graph <- BuildPaperGraph(assoc.mat, data.frame)
+paper.nodes <- cbind(seq(1:length(V(paper.graph)$name)), V(paper.graph)$name, V(paper.graph)$size, 
+                     data.frame$Journal.Community)
+
+paper.edgelist <- get.edgelist(paper.graph, names = F)
+paper.edgelist <- as.data.frame (cbind(paper.edgelist, seq(1:dim(paper.edgelist)[1])))
+names(paper.edgelist) <- c("node.in", "node.out", "edge.ind")
+
+#write.csv(paper.nodes, "./Data/PaperNodes.csv")
+#write.csv(paper.edgelist, "./Data/PaperEdges.csv")
+
+#---------------------------#
+#----- Figure S1 Code ------#
+#---------------------------#
+source("./R/PaperJournalNumberThroughTime.R")
+PaperJournalNumberThroughTime(data.frame)
+
+# papers.per.year <- table(factor(data.frame$PubYear, levels = seq(1980, 2014)))
+# 
+# journals.per.year <- rep(NA, 35)
+# for(i in 1:35){
+#   k <- subset(data.frame, PubYear == 1979 + i)
+#   journals.per.year[i] <- length(levels(factor(k$Source)))
+# }
+
+within.to.between.refs.comm1 <- rep(NA, 35)
+within.to.between.refs.comm2 <- rep(NA, 35)
+within.to.between.refs.comm3 <- rep(NA, 35)
+
+comm1.edgeswithin.byyear <- comm1.edgesbetween.byyear <- vector("list", 35)
+comm1.quants.byyear <- comm1.edges.between <- comm1.edges.tot <- rep(NA,35)
+
+comm2.edgeswithin.byyear <- comm2.edgesbetween.byyear <- vector("list", 35)
+comm2.quants.byyear <- comm2.edges.between <- comm2.edges.tot  <- rep(NA,35)
+
+comm3.edgeswithin.byyear <- comm3.edgesbetween.byyear <- vector("list", 35)
+comm3.quants.byyear <- comm3.edges.between <- comm3.edges.tot  <- rep(NA,35)
+
+for(i in 1:35){
+#  comm1.byyear[[i]] <- subset(data.frame, Journal.Community == 1 & PubYear == 1979 + i)
+#   comm1.edgeswithin.byyear[[i]] <- assoc.mat[which(data.frame$Journal.Community == 1 & data.frame$PubYear == 1979 + i), 
+#                                              which(data.frame$Journal.Community == 1 & 
+#                                                      data.frame$PubYear <= 1979 + i)]
+  comm1.edgeswithin.byyear[[i]] <- assoc.mat[ 
+                                             which(data.frame$Journal.Community == 1 & 
+                                                     data.frame$PubYear <= 1979 + i), which(data.frame$Journal.Community == 1 & data.frame$PubYear == 1979 + i)]
+  comm1.edgesbetween.byyear[[i]] <- assoc.mat[
+                                              which(data.frame$Journal.Community != 1 & 
+                                                      data.frame$PubYear <= 1979 + i), which(data.frame$Journal.Community == 1 
+                                                                                             & data.frame$PubYear == 1979 + i)]
+  comm1.quants.byyear[i] <- sum(na.omit(as.vector(comm1.edgesbetween.byyear[[i]]))) / 
+    (sum(na.omit(as.vector(comm1.edgesbetween.byyear[[i]]))) + 
+       sum(na.omit(as.vector(comm1.edgeswithin.byyear[[i]]))))
+  comm1.edges.between[i] <- sum(na.omit(as.vector(comm1.edgesbetween.byyear[[i]]))) 
+  comm1.edges.tot[i] <-  (sum(na.omit(as.vector(comm1.edgesbetween.byyear[[i]]))) + 
+       sum(na.omit(as.vector(comm1.edgeswithin.byyear[[i]]))))
+  
+  comm2.edgeswithin.byyear[[i]] <- assoc.mat[ 
+                                             which(data.frame$Journal.Community == 2 & 
+                                                     data.frame$PubYear <= 1979 + i), which(data.frame$Journal.Community == 2 
+                                                                                            & data.frame$PubYear == 1979 + i)]
+  comm2.edgesbetween.byyear[[i]] <- assoc.mat[ 
+                                              which(data.frame$Journal.Community != 2 & 
+                                                      data.frame$PubYear <= 1979 + i), which(data.frame$Journal.Community == 2 
+                                                                                             & data.frame$PubYear == 1979 + i)]
+  comm2.quants.byyear[i] <- sum(na.omit(as.vector(comm2.edgesbetween.byyear[[i]]))) / 
+    (sum(na.omit(as.vector(comm2.edgesbetween.byyear[[i]]))) + 
+       sum(na.omit(as.vector(comm2.edgeswithin.byyear[[i]]))))
+  comm2.edges.between[i] <- sum(na.omit(as.vector(comm2.edgesbetween.byyear[[i]]))) 
+  comm2.edges.tot[i] <- (sum(na.omit(as.vector(comm2.edgesbetween.byyear[[i]]))) + 
+     sum(na.omit(as.vector(comm2.edgeswithin.byyear[[i]]))))
+  
+  comm3.edgeswithin.byyear[[i]] <- assoc.mat[ 
+                                             which(data.frame$Journal.Community == 3 & 
+                                                     data.frame$PubYear <= 1979 + i), which(data.frame$Journal.Community == 3 
+                                                                                            & data.frame$PubYear == 1979 + i)]
+  comm3.edgesbetween.byyear[[i]] <- assoc.mat[ 
+                                              which(data.frame$Journal.Community != 3 & 
+                                                      data.frame$PubYear <= 1979 + i), which(data.frame$Journal.Community == 3 
+                                                                                             & data.frame$PubYear == 1979 + i)]
+  comm3.quants.byyear[i] <- sum(na.omit(as.vector(comm3.edgesbetween.byyear[[i]]))) / 
+    (sum(na.omit(as.vector(comm3.edgesbetween.byyear[[i]]))) + 
+       sum(na.omit(as.vector(comm3.edgeswithin.byyear[[i]]))))
+  comm3.edges.between[i] <- sum(na.omit(as.vector(comm3.edgesbetween.byyear[[i]]))) 
+  comm3.edges.tot[i] <- (sum(na.omit(as.vector(comm3.edgesbetween.byyear[[i]]))) + 
+                           sum(na.omit(as.vector(comm3.edgeswithin.byyear[[i]]))))
+  
+}
+
+# Shannon's diversity of lead author affiliation through time in each community
+require(vegan)
+comm1.byyear <- comm2.byyear <- comm3.byyear <- vector("list", 35)
+pi.1 <- pi.2 <- pi.3 <- vector("list", 35)
+shannon.comm1 <- shannon.comm2 <- shannon.comm3 <- rep(NA, 35)
+
+for(i in 1:35){
+  comm1.byyear[[i]] <- subset(data.frame, Journal.Community == 1 
+                              & PubYear == 1979 + i)
+  pi.1[[i]] <- table(comm1.byyear[[i]]$AuthInstAffil) / dim(comm1.byyear[[i]])
+  shannon.comm1[i] <- diversity(pi.1[[i]])
+
+  comm2.byyear[[i]] <- subset(data.frame, Journal.Community == 2 
+                              & PubYear == 1979 + i)
+  pi.2[[i]] <- table(comm2.byyear[[i]]$AuthInstAffil) / dim(comm2.byyear[[i]])
+  shannon.comm2[i] <- diversity(pi.2[[i]])
+
+  comm3.byyear[[i]] <- subset(data.frame, Journal.Community == 3 
+                              & PubYear == 1979 + i)
+  pi.3[[i]] <- table(comm3.byyear[[i]]$AuthInstAffil) / dim(comm3.byyear[[i]])
+  shannon.comm3[i] <- diversity(pi.3[[i]])
+}
+
+# number authors through time
+comm1.authsthroughtime <- tapply(comm1$NumberAuthors, as.factor(comm1$PubYear), median)
+comm2.authsthroughtime <- tapply(comm2$NumberAuthors, as.factor(comm2$PubYear), median)
+comm3.authsthroughtime <- tapply(comm3$NumberAuthors, as.factor(comm3$PubYear), median)
+
+par(mfrow = c(1, 2), mar = c(2, 6, 1, 1), oma = c(1, 1, 1, 1))
+plot(as.numeric(papers.per.year) ~ seq(1980, 2014), xlab = "", 
+     ylab = "Number included in search", pch = 16, 
+     xlim = c(1990, 2015), 
+     ylim = c(0, 250))
+points(journals.per.year ~ seq(1980, 2014), xlab = "", 
+     ylab = "Journals with \n Included Papers", pch = 1)
+leg.text <- c("Papers", "Journals")
+legend("topleft", leg.text, pch = c(1, 16), bty = "n")
+plot(comm1.quants.byyear[- (1:10)] ~ seq(1990, 2014), xlab = "", 
+     ylab = "Proportion between-community citations", 
+     ylim = c(0, 1), pch = 16, col = "gold", xlim = c(1990, 2015))
+points(comm2.quants.byyear[-c(1:10)] ~ seq(1990, 2014), col = "red", pch = 1)
+points(comm3.quants.byyear[-c(1:10)] ~ seq(1990, 2014), col = "blue", pch = 2)
+lines((comm1.quants.byyear[- (1:10)] ~ seq(1990, 2014)), col = "gold", lwd = 2)
+lines((comm2.quants.byyear[- (1:10)] ~ seq(1990, 2014)), col = "red", lwd = 2)
+lines((comm3.quants.byyear[- (1:10)] ~ seq(1990, 2014)), col = "blue", lwd = 2)
+leg.text <- c("Ecology journals", "Human epi journals", "Veterinary journals")
+legend("topright", leg.text, col = c("gold", "red", "blue"), bty = "n", 
+       pch = c(16, 1, 2), 
+       lty = c(1, 1, 1),
+       lwd = c(2, 2, 2))
+
+# GAM fits
+require(mgcv)
+data.frame$Journal.Community <- factor(data.frame$Journal.Community)
+auth.div.mod <- gam(AuShannonDiv ~ s(PubYear) + 
+                      s(PubYear, by = (Journal.Community)) +
+                      factor(Journal.Community), 
+                    data = data.frame)
+
+# Between-community citations
+cites.between <- c(comm1.edges.between[-c(1:14)], 
+                   comm2.edges.between[-c(1:15)], 
+                   comm3.edges.between[-c(1:17)])
+cites.within <- c(comm1.edges.tot[-c(1:14)] - comm1.edges.between[-c(1:14)], 
+                  comm2.edges.tot[-c(1:15)] - comm2.edges.between[-c(1:15)], 
+                  comm2.edges.tot[-c(1:17)] - comm3.edges.between[-c(1:17)])
+years <- 1994:2014
+years.full <- c(years,
+                years[-1],
+                years[-c(1:3)])
+community <- c(rep(1, length(1994:2014)), 
+               rep(2, length(1994:2014) - 1), 
+               rep(3, length(1994:2014) - 3)
+               )
+full.gam.fit <- gam(cbind(cites.between, cites.within) ~ s(years.full) + 
+                      s(years.full, by = factor(community)) +
+                      factor(community), 
+                    family = "binomial")
+reduced.gam.fit <- gam(cbind(cites.between, cites.within) ~ s(years.full) +
+                      factor(community), 
+                    family = "binomial")
+summary(full.gam.fit)
+AIC(full.gam.fit)
+AIC(reduced.gam.fit)
+
+
+cites.gam <- gam(cites ~ s(year) + 
+                   s(year, by = factor(community)) +
+                   factor(community))
+years <- 1994:2014
+gam1.dat <- data.frame(cites = comm1.quants.byyear[-c(1:14)],
+                       years = years)
+comm1.gam <- gam(cbind(comm1.edges.between[-c(1:14)], comm1.edges.tot[-c(1:14)] - comm1.edges.between[-c(1:14)]) ~ s(years), 
+                 family = "binomial")
+comm2.gam <- gam(cbind(comm2.edges.between[-c(1:15)], comm2.edges.tot[-c(1:15)] - comm2.edges.between[-c(1:15)]) ~ s(years[-1]), 
+                 family = "binomial")
+comm3.gam <- gam(cbind(comm3.edges.between[-c(1:17)], comm3.edges.tot[-c(1:17)] - comm3.edges.between[-c(1:17)]) ~ s(years[-c(1:3)]), 
+                 family = "binomial")
+preds.comm1 <- predict(comm1.gam, type = "response", se.fit = TRUE)
+fit.comm1 <- preds.comm1$fit 
+fit.up95.comm1 <-fit.comm1 - 1.96*preds.comm1$se.fit 
+fit.low95.comm1 <-fit.comm1 + 1.96*preds.comm1$se.fit
+
+preds.comm2 <- predict(comm2.gam, type="response", 
+               se.fit = TRUE)
+fit.comm2 <- preds.comm2$fit
+fit.up95.comm2 <-fit.comm2 - 1.96*preds.comm2$se.fit
+fit.low95.comm2 <-fit.comm2 + 1.96*preds.comm2$se.fit
+
+preds.comm3 <- predict(comm3.gam, type="response", 
+                       se.fit = TRUE)
+fit.comm3 <- preds.comm3$fit
+fit.up95.comm3 <-fit.comm3 - 1.96*preds.comm3$se.fit
+fit.low95.comm3 <-fit.comm3 + 1.96*preds.comm3$se.fit
+
+par(mfrow = c(1, 2), mar = c(2, 6, 1, 1), oma = c(1, 1, 1, 1))
+plot(as.numeric(papers.per.year) ~ seq(1980, 2014), xlab = "", 
+     ylab = "Number included in search", pch = 16, 
+     xlim = c(1990, 2015), 
+     ylim = c(0, 250))
+points(journals.per.year ~ seq(1980, 2014), xlab = "", 
+       ylab = "Journals with \n Included Papers", pch = 1)
+leg.text <- c("Papers", "Journals")
+legend("topleft", leg.text, pch = c(1, 16), bty = "n", cex = .8)
+plot(x = 0, y = 0, xlab = "", 
+     ylab = "Proportion between-community citations", 
+     ylim = c(0, 1), pch = 16, col = "gold", xlim = c(1994, 2015))
+
+# plot(x = 0, y = 0, cex = 0, ylim = c(0, 1), xlim = c(1994, 2015), 
+#      xaxs = "i", yaxs = "i")
+polygon(c(years, rev(years)), 
+        c(fit.low95.comm1, rev(fit.up95.comm1)),
+        border=NA, col = rgb(255/255,215/255,0, alpha = .3))
+polygon(c(years[-1], rev(years[-1])), 
+        c(fit.low95.comm2, rev(fit.up95.comm2)), col = rgb(1,0,0, alpha = .3),
+        border=NA)
+polygon(c(years[-c(1:3)], rev(years[-c(1:3)])), 
+        c(fit.low95.comm3, rev(fit.up95.comm3)), col = rgb(0,0,1, alpha = .3),
+        border=NA)
+points(comm1.quants.byyear[-c(1:10)] ~ seq(1990, 2014), col = "gold", pch = 1)
+points(comm2.quants.byyear[-c(1:15)] ~ seq(1995, 2014), col = "red", pch = 1)
+points(comm3.quants.byyear[-c(1:10)] ~ seq(1990, 2014), col = "blue", pch = 2)
+lines((comm1.quants.byyear[- (1:10)] ~ seq(1990, 2014)), col = "gold", lwd = 2)
+lines((comm2.quants.byyear[- (1:10)] ~ seq(1990, 2014)), col = "red", lwd = 2)
+lines((comm3.quants.byyear[- (1:10)] ~ seq(1990, 2014)), col = "blue", lwd = 2)
+leg.text <- c("Ecology journals", "Human epi journals", "Veterinary journals")
+legend("topright", leg.text, col = c("gold", "red", "blue"), bty = "n", 
+       pch = c(16, 1, 2), 
+       lty = c(1, 1, 1),
+       lwd = c(2, 2, 2), cex = .8)
+
+# plot(shannon.comm1[- (1:10)] ~ seq(1990, 2014), xlab = "", 
+#      ylab = "Lead author diversity", 
+#      ylim = c(0, 3), pch = 16, col = "gold", type = "l", lwd = 2, xlim = c(1990, 2015))
+# points(shannon.comm1[-c(1:10)] ~ seq(1990, 2014), col = "gold", pch = 16, lwd = 2)
+# lines(shannon.comm2[-c(1:10)] ~ seq(1990, 2014), col = "red", lwd = 2)
+# lines(shannon.comm3[-c(1:10)] ~ seq(1990, 2014), col = "blue", lwd = 2)
+# points(shannon.comm2[-c(1:10)] ~ seq(1990, 2014), col = "red", pch = 1)
+# points(shannon.comm3[-c(1:10)] ~ seq(1990, 2014), col = "blue", pch = 2)
+# leg.text <- c("Ecol", "Epi", "Vet")
+# legend("topleft", leg.text, col = c("gold", "red", "blue"), bty = "n", 
+#        pch = c(16, 1, 2), 
+#        lty = c(1, 1, 1),
+#        lwd = c(2, 2, 2))
+# 
+# par(new = T)
+# plot(lowess(comm1.authsthroughtime ~ as.numeric(as.character(names(comm1.authsthroughtime)))), 
+#        col = "gold", type = "l", yaxt = "n", ylab = "", xlab = "",
+#      ylim = c(0, 7))
+# axis(side = 4, at = c(0:7), labels = c(0:7))
+# mtext("Median number authors", side = 4, las = 0, cex = .8, line = 2)
+# lines(lowess(comm2.authsthroughtime ~ as.numeric(as.character(names(comm2.authsthroughtime)))), 
+#      col = "red")
+# lines(lowess(comm3.authsthroughtime ~ as.numeric(as.character(names(comm3.authsthroughtime)))), 
+#       col = "blue")
+
+#-------------------------------#
+#-- diversity model ------------#
+#-------------------------------#
+div.model <- lm(AuShannonDiv ~ PubYear * as.factor(Journal.Community) + NumberAuthors, data = data.frame)
+plot(div.model)
+summary(div.model)
 
 #-----------------------------------------#
 #-- Author network -----------------------#
@@ -156,11 +739,11 @@ which(V(giant.compo.aus)$size >= 24)[1]
 paper.degree.dist <- degree(paper.graph, mode = "in")
 paper.betweenness <- betweenness(paper.graph)
 paper.hierarchy <- hierarchy(paper.graph)
-paper.optim.community <- optimal.community(paper.graph)
+# paper.optim.community <- optimal.community(paper.graph)
 
 # plot of giant component only
 giant.compo.papers <- delete.vertices(paper.graph, 
-                                      which(clusters(paper.graph)$membership != 5))
+                                      which(clusters(paper.graph)$membership != 4))
 giant.compo.papers.walktr <- walktrap.community(giant.compo.papers, steps = 4)
 giant.compo.papers.walktr$membership
 table(giant.compo.papers.walktr$membership)
@@ -173,11 +756,35 @@ paper.vertex.ind <- factor(ifelse(giant.compo.papers.walktr$membership %in% smal
 color.vec <- c("red", "blue", "green", "yellow", "deeppink", "darkseagreen4", "darkturquoise", "purple", "grey70")
 paper.vertex.colors <- color.vec[paper.vertex.ind]
 
+data.frame$PaperCommunity <- ifelse(clusters(paper.graph)$membership != 4, "NotGiant", NA
+                                    )
+data.frame$PaperCommunity[which(clusters(paper.graph)$membership == 4)] <- as.character(paper.vertex.ind)
+# write.csv(data.frame, "./Data/PaperDataFrameWithPaperCommunities_072515.csv")
+
 paper.comm.top10 <- vector("list", length(levels(paper.vertex.ind)))
 for(i in 1:length(levels(paper.vertex.ind))){
-  paper.comm.i <- V(giant.compo.papers)[as.numeric(paper.vertex.ind) == i]
-  paper.comm.top10[[i]] <- paper.comm.i$name[order(paper.comm.i$size, decreasing = T)][1:10]
+  paper.comm.i <- V(giant.compo.papers)[as.character(paper.vertex.ind) == levels(paper.vertex.ind)[i]]
+  paper.comm.top10[[i]] <- as.data.frame(cbind(paper.comm.i$name[order(paper.comm.i$size, decreasing = T)], 
+                                 paper.comm.i$JoComm[order(paper.comm.i$size, decreasing = T)], 
+                                 as.character(paper.comm.i$Source)[order(paper.comm.i$size, decreasing = T)], 
+                                 as.character(paper.comm.i$PaperNumber)[order(paper.comm.i$size, decreasing = T)],
+                                 rep(levels(paper.vertex.ind)[i], length(paper.comm.i))
+                                 ))
+  names(paper.comm.top10[[i]]) <- c("Paper", "JournalCommunity", "JournalName", "PaperNumber", "PaperCommunity")
 }
+
+# dput(paper.comm.top10, "./Data/PaperCommunityMembership_072515")
+
+table(paper.comm.top10[[1]]$JournalCommunity) / dim(paper.comm.top10[[1]])[1]
+table(paper.comm.top10[[2]]$JournalCommunity) / dim(paper.comm.top10[[2]])[1]
+table(paper.comm.top10[[3]]$JournalCommunity) / dim(paper.comm.top10[[3]])[1]
+table(paper.comm.top10[[4]]$JournalCommunity) / dim(paper.comm.top10[[4]])[1]
+table(paper.comm.top10[[5]]$JournalCommunity) / dim(paper.comm.top10[[5]])[1]
+table(paper.comm.top10[[6]]$JournalCommunity) / dim(paper.comm.top10[[6]])[1]
+table(paper.comm.top10[[7]]$JournalCommunity) / dim(paper.comm.top10[[7]])[1]
+table(paper.comm.top10[[8]]$JournalCommunity) / dim(paper.comm.top10[[8]])[1]
+table(paper.comm.top10[[9]]$JournalCommunity) / dim(paper.comm.top10[[9]])[1]
+table(paper.comm.top10[[10]]$JournalCommunity) / dim(paper.comm.top10[[10]])[1]
 
 # margin.dims = c(0, 0, 0, 0)
 # plot(giant.compo.papers, 
@@ -231,6 +838,20 @@ for(i in 1:length(levels(paper.vertex.ind))){
 # diam.journal <- diameter(journal.graph)
 # power.law.fit.journal <- power.law.fit(degree(journal.graph, mode = "all"))
 
+
+journal.degree.best <- degree(journal.graph)[c(33, 35, 60, 74, 77, 80)]
+range(journal.degree.best)
+journal.degree.other <- degree(journal.graph)[-c(33, 35, 60, 74, 77, 80)]
+range(journal.degree.other)
+journal.degree.all <- degree(journal.graph, mode = "out")
+best.not.best <- rep(0, length(journal.degree.all))
+best.not.best[-c(33, 35, 60, 74, 77, 80)] <- 1
+par(mfrow = c(1, 1), mar = c(4, 4, 1, 1), oma = c(2, 2, 2, 2))
+boxplot((journal.degree.all)~ best.not.best, col = "grey80", 
+        names = c("\n Most Diverse \n Authorship", "Other Journals"),
+        ylab = "Journal Out-Degree")
+
+
 # which(degree(journal.graph) < 1)
 comm1.jos <- levels(factor(subset(data.frame, Journal.Community == 1)$Source))
 comm2.jos <- levels(factor(subset(data.frame, Journal.Community == 2)$Source))
@@ -245,6 +866,7 @@ for(i in 1:length(vertex.sizes)){
                                 ifelse(V(journal.graph.small)$name[i] %in% comm2.jos, 2,
                                        ifelse(V(journal.graph.small)$name[i] %in% comm3.jos, 3, 4)))
 }
+
 
 V(journal.graph.small)$name
 plot(journal.graph.small, 
