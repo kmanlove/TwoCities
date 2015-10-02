@@ -1,7 +1,4 @@
 AuthorDiversityPlots <- function(data.frame){
-#   comm1 <- subset(data.frame, Journal.Community == 1 & is.na(InCommunityRefs) == F)
-#   comm2 <- subset(data.frame, Journal.Community == 2 & is.na(InCommunityRefs) == F)
-#   comm3 <- subset(data.frame, Journal.Community == 3 & is.na(InCommunityRefs) == F)
   data.frame$BlockedYears <- cut(data.frame$PubYear, breaks = seq(1990, 2014, length.out = 13))
   comm1 <- subset(data.frame, Journal.Community == 1)
   comm2 <- subset(data.frame, Journal.Community == 2)
