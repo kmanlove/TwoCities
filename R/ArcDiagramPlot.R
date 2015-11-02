@@ -3,11 +3,6 @@ ArcDiagramPlot <- function(journal.graph){
 # get edgelist
 edgelist = get.edgelist(journal.graph)
 
-# clean up the really long names
-
-
-# get vertex labels
-#arcdiagram orders by edgelist not by igraph vertex labels- so doesn't include those species that don't have edges.
 nam=character()
 for(i in 1:dim(edgelist)[1]){
   nam=c(nam, edgelist[i,])  
@@ -70,12 +65,14 @@ values = get.edge.attribute(journal.graph, "weight")
 ord=order(vgroups2,max(jo.degrees)-jo.degrees)
 
 #with species labels 
-par(mar=c(20,0,2,0))
+#svg("./Figures/Fig1_20151011.svg", width = 8, height = 3.42, pointsize = 8)
+#png("./Figures/Fig1_20151011.png", width = 227, height = 87, units = "mm", pointsize = 6, res = 400)
+par(mar=c(10,0,0,0))
 arcplot(edgelist, 
         sorted = T,
         ordering=ord, 
         #        labels=vlabels, 
-        cex.labels=0.6,
+        cex.labels=1,
         show.nodes=TRUE, 
         col.nodes=vborders, 
         bg.nodes=vfill,
@@ -86,5 +83,6 @@ arcplot(edgelist,
         line= -0.1, 
         lwd.arcs = .5 * values,
         col.arcs = rgb(160/255, 160/255, 160/255, alpha = .2))
+#dev.off()
 #--- END angie code ---#
 }
